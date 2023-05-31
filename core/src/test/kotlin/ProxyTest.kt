@@ -1,5 +1,5 @@
 import io.github.mscheong01.interfaice.openai.OpenAiChat
-import io.github.mscheong01.interfaice.openai.OpenAiProxy
+import io.github.mscheong01.interfaice.openai.OpenAiProxyFactory
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 // See the License for the specific language governing permissions and
 // limitations under the License.
 class ProxyTest {
-    val proxy = OpenAiProxy(System.getenv("OPENAI_API_KEY")).of(TestInterface::class.java)
+    val proxy = OpenAiProxyFactory(System.getenv("OPENAI_API_KEY")).create(TestInterface::class.java)
 
     @Test
     fun test() {

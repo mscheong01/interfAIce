@@ -13,10 +13,10 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice
 
-interface AiProxy {
-    fun <T> of (interface_: Class<T>): T
+interface AiProxyFactory {
+    fun <T> create (interface_: Class<T>): T
 }
 
-inline fun <reified T> AiProxy.of(): T {
-    return this.of(T::class.java)
+inline fun <reified T> AiProxyFactory.create(): T {
+    return this.create(T::class.java)
 }

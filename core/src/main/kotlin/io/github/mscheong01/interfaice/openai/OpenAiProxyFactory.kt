@@ -13,14 +13,14 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice.openai
 
-import io.github.mscheong01.interfaice.AiProxy
+import io.github.mscheong01.interfaice.AiProxyFactory
 import java.lang.reflect.Proxy
 import java.util.ServiceLoader
 
-class OpenAiProxy(
+class OpenAiProxyFactory(
     val apiKey: String,
-) : AiProxy {
-    override fun <T> of (interface_: Class<T>): T {
+) : AiProxyFactory {
+    override fun <T> create (interface_: Class<T>): T {
         return Proxy.newProxyInstance(
             interface_.classLoader,
             arrayOf(interface_),
@@ -31,8 +31,8 @@ class OpenAiProxy(
     private fun getOpenAiApiAdapter(): OpenAiApiAdapter {
         val adapters = ServiceLoader.load(OpenAiApiAdapter::class.java)
         // prefer injected adapter over the default one
-        adapters.firstOrNull { it::class.qualifiedName != DefaultOkHttpOpenAiClient::class.qualifiedName }?.let {
-            return it
+        adapters.firstOrNull()?.let {
+            return it.apply { setApiKey(apiKey) }
         }
         return DefaultOkHttpOpenAiClient().apply {
             setApiKey(apiKey)
