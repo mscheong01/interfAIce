@@ -1,0 +1,24 @@
+.classpath
+.gradle
+.project
+.settings
+eclipsebin
+local.properties
+
+bin
+gen
+build
+out
+lib
+reports
+
+.idea
+*.iml
+classes
+
+# Mkdocs files
+docs/1.x/*
+
+obj
+
+.DS_Store
