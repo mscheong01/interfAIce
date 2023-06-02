@@ -20,5 +20,5 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 data class ChatChoice(
     val index: Int,
     val message: ChatMessage,
-    val finishReason: String,
+    val finishReason: String
 )

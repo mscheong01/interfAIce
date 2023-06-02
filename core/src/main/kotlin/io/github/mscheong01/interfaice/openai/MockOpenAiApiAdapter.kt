@@ -29,17 +29,17 @@ class MockOpenAiApiAdapter : OpenAiApiAdapter {
                     index = 0,
                     message = ChatMessage(
                         role = ChatMessageRole.ASSISTANT,
-                        content = "Hello, I am a chatbot. I am here to help you.",
+                        content = "Hello, I am a chatbot. I am here to help you."
                     ),
-                    finishReason = "stop",
+                    finishReason = "stop"
                 )
             ),
             `object` = "text_completion",
             usage = ChatUsage(
                 promptTokens = 7,
                 completionTokens = 7,
-                totalTokens = 1,
-            ),
+                totalTokens = 1
+            )
         )
     }
 }

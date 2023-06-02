@@ -38,7 +38,7 @@ class DefaultOkHttpOpenAiClient : OpenAiApiAdapter {
             .header("Authorization", "Bearer $apiKey")
             .build()
         return withContext(Dispatchers.IO) {
-            with (client.newCall(httpRequest).execute()) {
+            with(client.newCall(httpRequest).execute()) {
                 if (this.isSuccessful) {
                     return@withContext mapper.readValue(this.body().string())
                 } else {

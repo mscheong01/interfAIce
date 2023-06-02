@@ -18,9 +18,9 @@ import java.lang.reflect.Proxy
 import java.util.ServiceLoader
 
 class OpenAiProxyFactory(
-    val apiKey: String,
+    val apiKey: String
 ) : AiProxyFactory {
-    override fun <T> create (interface_: Class<T>): T {
+    override fun <T> create(interface_: Class<T>): T {
         return Proxy.newProxyInstance(
             interface_.classLoader,
             arrayOf(interface_),

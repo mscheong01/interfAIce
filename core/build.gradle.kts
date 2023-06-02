@@ -15,8 +15,6 @@ dependencies {
     // https://mvnrepository.com/artifact/com.squareup.okhttp/okhttp
     implementation("com.squareup.okhttp:okhttp:2.7.5")
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
-
-
 }
 
 java {

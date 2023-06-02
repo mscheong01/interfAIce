@@ -13,10 +13,17 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice
 
-interface AiProxyFactory {
-    fun <T> create(interface_: Class<T>): T
-}
+import kotlin.reflect.KClass
 
-inline fun <reified T> AiProxyFactory.create(): T {
-    return this.create(T::class.java)
-}
+data class MethodSpecification(
+    val suspend: Boolean,
+    val name: String,
+    val parameters: List<ParameterSpecification>,
+    val description: String? = null,
+    val returnType: KClass<out Any>
+)
+data class ParameterSpecification(
+    val name: String,
+    val type: KClass<out Any>,
+    val `value`: Any? = null
+)
