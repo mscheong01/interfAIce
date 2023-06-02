@@ -3,7 +3,7 @@ package io.github.mscheong01.interfaice
 import kotlin.reflect.KClass
 
 object TranscodingRules {
-    
+
     val BYTE = KotlinDefaultRule(
         type = Byte::class,
         encodeDescription = """

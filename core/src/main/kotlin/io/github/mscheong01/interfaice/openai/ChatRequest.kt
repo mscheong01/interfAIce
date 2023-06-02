@@ -31,5 +31,5 @@ data class ChatRequest(
     val presencePenalty: Double? = null,
     val frequencyPenalty: Double? = null,
     val logitBias: Map<String, Int>? = null,
-    val user: String? = null,
+    val user: String? = null
 )

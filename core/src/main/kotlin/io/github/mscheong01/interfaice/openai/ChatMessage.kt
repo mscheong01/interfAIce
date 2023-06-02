@@ -19,5 +19,5 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class ChatMessage(
     val role: ChatMessageRole,
-    val content: String,
+    val content: String
 )
