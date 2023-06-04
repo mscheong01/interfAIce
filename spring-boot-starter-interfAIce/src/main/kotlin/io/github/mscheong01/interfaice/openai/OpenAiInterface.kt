@@ -3,7 +3,7 @@ package io.github.mscheong01.interfaice.openai
 import org.springframework.core.annotation.AliasFor
 import org.springframework.stereotype.Component
 
-@Target
+@Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
 @Component

@@ -1,17 +1,15 @@
 
 dependencies {
-    // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-json
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.1")
+    api("com.fasterxml.jackson.core:jackson-databind:2.15.1")
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.module/jackson-module-kotlin
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.1")
+    api("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.1")
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${rootProject.ext["coroutinesVersion"]}")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:${rootProject.ext["coroutinesVersion"]}")
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-reactor
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${rootProject.ext["coroutinesVersion"]}}")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${rootProject.ext["coroutinesVersion"]}}")
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-reactive
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:${rootProject.ext["coroutinesVersion"]}")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:${rootProject.ext["coroutinesVersion"]}")
     // https://mvnrepository.com/artifact/com.squareup.okhttp/okhttp
     implementation("com.squareup.okhttp:okhttp:2.7.5")
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")

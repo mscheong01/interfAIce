@@ -27,11 +27,14 @@ data class MethodSpecification(
     val returnType: KClass<out Any>
 ) {
     companion object {
-        fun from(method: Method, args: Array<out Any>): MethodSpecification {
+        fun from(method: Method, args: Array<out Any>?): MethodSpecification {
             val isSuspend = method.isSuspendingFunction()
             val parameters: List<ParameterSpecification>
             val returnType: KClass<out Any>
-            if (isSuspend) {
+            if (args == null) {
+                returnType = method.returnType.kotlin
+                parameters = listOf()
+            } else if (isSuspend) {
                 val continuation = method.genericParameterTypes.get(method.genericParameterTypes.size - 1)
                 returnType = ( // TODO: find alternative to this
                     (

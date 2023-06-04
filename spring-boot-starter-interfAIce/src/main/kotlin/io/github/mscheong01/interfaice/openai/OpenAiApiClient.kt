@@ -21,13 +21,14 @@ import org.springframework.web.reactive.function.client.bodyToMono
 
 class OpenAiApiClient : OpenAiApiAdapter {
     private lateinit var properties: OpenAiProperties
-    val webClient = WebClient.builder()
-        .baseUrl(properties.baseUrl)
-        .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer ${properties.apiKey}")
-        .build()
+    private lateinit var webClient: WebClient
 
     override fun setProperties(properties: OpenAiProperties) {
         this.properties = properties
+        this.webClient = WebClient.builder()
+            .baseUrl(properties.baseUrl)
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer ${properties.apiKey}")
+            .build()
     }
 
     override suspend fun chat(request: ChatRequest): ChatResponse {
