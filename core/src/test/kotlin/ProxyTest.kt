@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test
 // See the License for the specific language governing permissions and
 // limitations under the License.
 class ProxyTest {
-    val proxy = OpenAiProxyFactory(System.getenv("OPENAI_API_KEY")).create(TestInterface::class.java)
+    val proxy = OpenAiProxyFactory.of(System.getenv("OPENAI_API_KEY")).create(TestInterface::class.java)
 
     @Test
     fun test() {

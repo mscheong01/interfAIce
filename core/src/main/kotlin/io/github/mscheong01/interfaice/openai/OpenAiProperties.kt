@@ -13,7 +13,7 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice.openai
 
-interface OpenAiApiAdapter {
-    fun setProperties(properties: OpenAiProperties)
-    suspend fun chat(request: ChatRequest): ChatResponse
-}
+data class OpenAiProperties(
+    val apiKey: String,
+    val baseUrl: String = "https://api.openai.com"
+)

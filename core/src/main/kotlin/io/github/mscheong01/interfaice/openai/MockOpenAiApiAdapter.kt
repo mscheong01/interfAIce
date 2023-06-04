@@ -14,7 +14,7 @@
 package io.github.mscheong01.interfaice.openai
 
 class MockOpenAiApiAdapter : OpenAiApiAdapter {
-    override fun setApiKey(apiKey: String) {
+    override fun setProperties(properties: OpenAiProperties) {
         // do nothing
     }
 

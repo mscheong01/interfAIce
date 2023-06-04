@@ -8,7 +8,7 @@ internal class DefaultOkHttpOpenAiClientTest {
     @Test
     fun testChat(): Unit = runBlocking {
         val client = DefaultOkHttpOpenAiClient()
-        client.setApiKey(System.getenv("OPENAI_API_KEY"))
+        client.setProperties(OpenAiProperties(System.getenv("OPENAI_API_KEY")))
         val response = client.chat(
             ChatRequest(
                 model = "gpt-3.5-turbo",

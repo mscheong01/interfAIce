@@ -3,6 +3,8 @@ plugins {
     `maven-publish`
     id("org.jlleitschuh.gradle.ktlint") version "11.3.1"
     signing
+    id("org.springframework.boot") version "3.0.5" apply false
+    id("io.spring.dependency-management") version "1.1.0" apply false
 }
 
 group = "io.github.mscheong01"
@@ -33,14 +35,14 @@ subprojects {
     }
 
     tasks.withType<JavaCompile> {
-        sourceCompatibility = JavaVersion.VERSION_1_8.toString()
-        targetCompatibility = JavaVersion.VERSION_1_8.toString()
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict")
-            jvmTarget = JavaVersion.VERSION_1_8.toString()
+            jvmTarget = JavaVersion.VERSION_17.toString()
         }
     }
 
@@ -110,6 +112,13 @@ subprojects {
         onlyIf {
             project.hasProperty("releaseVersion")
         }
+    }
+}
+
+project(":spring-boot-starter-interfAIce") {
+    apply {
+        plugin("org.springframework.boot")
+        plugin("io.spring.dependency-management")
     }
 }
 
