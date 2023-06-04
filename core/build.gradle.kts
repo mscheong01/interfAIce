@@ -15,6 +15,8 @@ dependencies {
     // https://mvnrepository.com/artifact/com.squareup.okhttp/okhttp
     implementation("com.squareup.okhttp:okhttp:2.7.5")
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
+    // https://mvnrepository.com/artifact/org.assertj/assertj-core
+    testImplementation("org.assertj:assertj-core:3.24.2")
 }
 
 java {

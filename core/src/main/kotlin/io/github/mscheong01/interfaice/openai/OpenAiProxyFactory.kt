@@ -24,7 +24,7 @@ class OpenAiProxyFactory(
         return Proxy.newProxyInstance(
             interface_.classLoader,
             arrayOf(interface_),
-            OpenAiInvocationHandler(getOpenAiApiAdapter())
+            OpenAiInvocationHandler(interface_.simpleName, getOpenAiApiAdapter())
         ) as T
     }
 

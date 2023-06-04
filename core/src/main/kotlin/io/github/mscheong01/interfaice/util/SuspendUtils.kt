@@ -13,30 +13,12 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice.util
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
+import java.lang.reflect.Method
 
-@OptIn(ExperimentalCoroutinesApi::class)
-internal fun <T> CoroutineContext.invokeSuspending(
-    continuation: Continuation<T>,
-    block: suspend () -> T
-): Any {
-    val deferred = CoroutineScope(this).async {
-        block()
+fun Method.isSuspendingFunction(): Boolean {
+    val types = this.parameterTypes
+    if (types.isNotEmpty() && "kotlin.coroutines.Continuation" == types[types.size - 1].name) {
+        return true
     }
-
-    deferred.invokeOnCompletion { cause: Throwable? ->
-        if (cause != null) {
-            continuation.resumeWithException(cause)
-        } else {
-            continuation.resume(deferred.getCompleted())
-        }
-    }
-
-    return kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+    return false
 }
