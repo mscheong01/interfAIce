@@ -17,7 +17,8 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KClass
 
 class TextObjectTranscoder {
-    fun <T : Any> encode(obj: T): String {
+    fun <T : Any> encode(obj: T?): String {
+        if (obj == null) return "NULL"
         val rule = TranscodingRules.match(obj::class)
         return rule.encoder(obj)
     }

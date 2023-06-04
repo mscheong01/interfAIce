@@ -13,6 +13,10 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice
 
+import io.github.mscheong01.interfaice.util.isSuspendingFunction
+import java.lang.reflect.Method
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.WildcardType
 import kotlin.reflect.KClass
 
 data class MethodSpecification(
@@ -21,7 +25,45 @@ data class MethodSpecification(
     val parameters: List<ParameterSpecification>,
     val description: String? = null,
     val returnType: KClass<out Any>
-)
+) {
+    companion object {
+        fun from(method: Method, args: Array<out Any>): MethodSpecification {
+            val isSuspend = method.isSuspendingFunction()
+            val parameters: List<ParameterSpecification>
+            val returnType: KClass<out Any>
+            if (isSuspend) {
+                val continuation = method.genericParameterTypes.get(method.genericParameterTypes.size - 1)
+                returnType = ( // TODO: find alternative to this
+                    (
+                        (continuation as ParameterizedType).actualTypeArguments.first() as WildcardType
+                        ).lowerBounds.first() as Class<*>
+                    ).kotlin
+                parameters = method.parameters.dropLast(1).mapIndexed { index, parameter ->
+                    ParameterSpecification(
+                        name = parameter.name,
+                        type = parameter.type.kotlin,
+                        value = args[index]
+                    )
+                }
+            } else {
+                parameters = method.parameters.mapIndexed { index, parameter ->
+                    ParameterSpecification(
+                        name = parameter.name,
+                        type = parameter.type.kotlin,
+                        value = args[index]
+                    )
+                }
+                returnType = method.returnType.kotlin
+            }
+            return MethodSpecification(
+                suspend = isSuspend,
+                name = method.name,
+                parameters = parameters,
+                returnType = returnType
+            )
+        }
+    }
+}
 data class ParameterSpecification(
     val name: String,
     val type: KClass<out Any>,

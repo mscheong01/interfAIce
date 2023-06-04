@@ -1,6 +1,7 @@
 import io.github.mscheong01.interfaice.openai.OpenAiChat
 import io.github.mscheong01.interfaice.openai.OpenAiProxyFactory
 import kotlinx.coroutines.runBlocking
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 
 // Copyright 2023 Minsoo Cheong
@@ -33,7 +34,18 @@ class ProxyTest {
         println(result)
     }
 
+    @Test
+    fun nullableTest() {
+        val result = proxy.greetingMessage("John")
+        Assertions.assertThat(result).contains("John")
+        println(result)
+        val result2 = proxy.greetingMessage(null)
+        Assertions.assertThat(result2).doesNotContain("NULL")
+        println(result2)
+    }
+
     interface TestInterface {
+
         @OpenAiChat
         fun randomMountainInCountry(countryName: String): String
 
@@ -42,5 +54,8 @@ class ProxyTest {
 
         @OpenAiChat
         suspend fun randomCityInCountry(countryName: String): String
+
+        @OpenAiChat
+        fun greetingMessage(name: String?): String
     }
 }
