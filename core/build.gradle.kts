@@ -17,7 +17,6 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
     // https://mvnrepository.com/artifact/org.assertj/assertj-core
     testImplementation("org.assertj:assertj-core:3.24.2")
-
 }
 
 java {

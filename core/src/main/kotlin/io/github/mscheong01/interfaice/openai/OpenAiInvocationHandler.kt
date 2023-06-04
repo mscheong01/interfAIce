@@ -28,7 +28,10 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class OpenAiInvocationHandler(val openAiApiAdapter: OpenAiApiAdapter) : InvocationHandler {
+class OpenAiInvocationHandler(
+    private val interfaceName: String,
+    private val openAiApiAdapter: OpenAiApiAdapter
+) : InvocationHandler {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun invoke(proxy: Any, method: Method, args: Array<out Any>): Any? {
@@ -44,11 +47,11 @@ class OpenAiInvocationHandler(val openAiApiAdapter: OpenAiApiAdapter) : Invocati
                             ChatMessage(
                                 ChatMessageRole.SYSTEM,
                                 """
-                                    You will be given a method spec of a method defined by the user.
+                                    You will be given a method spec of a method defined by the user as a member of interface '%s'.
                                     By Carefully following the method spec, respond as the method would.
                                     When responding, follow the given format without any additional text. Keep in mind that your response will be decoded and provided as the method response:
                                     response format: %s
-                                """.format(TranscodingRules.match(specification.returnType).encodeDescription).trimIndent()
+                                """.format(interfaceName, TranscodingRules.match(specification.returnType).encodeDescription).trimIndent()
                             ),
                             ChatMessage(
                                 ChatMessageRole.USER,
