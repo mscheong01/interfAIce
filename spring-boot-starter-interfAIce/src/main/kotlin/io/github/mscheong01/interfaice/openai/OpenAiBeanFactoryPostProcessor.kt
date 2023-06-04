@@ -22,7 +22,7 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AnnotationTypeFilter
 
 class OpenAiBeanFactoryPostProcessor(
-    openAiApiAdapter: OpenAiApiAdapter,
+    openAiApiAdapter: OpenAiApiAdapter
 ) : BeanFactoryPostProcessor {
 
     private val proxyFactory = OpenAiProxyFactory(openAiApiAdapter)
@@ -36,7 +36,7 @@ class OpenAiBeanFactoryPostProcessor(
                 return super.isCandidateComponent(beanDefinition) || beanDefinition.metadata.isAbstract
             }
         }.apply {
-            addIncludeFilter(AnnotationTypeFilter(OpenAiInterface::class.java, true, true));
+            addIncludeFilter(AnnotationTypeFilter(OpenAiInterface::class.java, true, true))
         }
 
         val candidates = provider.findCandidateComponents("io.github.mscheong01.interfaice") // TODO: Make this configurable

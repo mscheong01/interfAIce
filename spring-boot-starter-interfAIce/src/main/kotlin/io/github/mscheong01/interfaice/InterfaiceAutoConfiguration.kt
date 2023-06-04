@@ -27,7 +27,7 @@ open class InterfaiceAutoConfiguration {
 
     @Bean
     open fun openAiBeanFactoryPostProcessor(
-        openAiApiAdapter: OpenAiApiAdapter,
+        openAiApiAdapter: OpenAiApiAdapter
     ): OpenAiBeanFactoryPostProcessor {
         return OpenAiBeanFactoryPostProcessor(openAiApiAdapter)
     }
@@ -41,5 +41,4 @@ open class InterfaiceAutoConfiguration {
             setProperties(properties.openai)
         }
     }
-
 }
