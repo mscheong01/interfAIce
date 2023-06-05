@@ -13,22 +13,15 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import kotlin.reflect.KClass
-
 class TextObjectTranscoder {
-    fun <T : Any> encode(obj: T?): String {
+    inline fun <reified T : Any> encode(obj: T?): String {
         if (obj == null) return "NULL"
-        val rule = TranscodingRules.match(obj::class)
+        val rule = TranscodingRules.match(TypeSpecification.from(obj))
         return rule.encoder(obj)
     }
 
-    fun <T : Any> decode(str: String, type: KClass<T>): T {
+    fun <T : Any> decode(str: String, type: TypeSpecification<T>): T {
         val rule = TranscodingRules.match(type)
         return rule.decoder(str)
-    }
-
-    companion object {
-        val objectMapper = jacksonObjectMapper()
     }
 }
