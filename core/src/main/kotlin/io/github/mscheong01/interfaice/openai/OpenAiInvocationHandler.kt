@@ -49,7 +49,7 @@ class OpenAiInvocationHandler(
                                 """
                                     You will be given a method spec of a method defined by the user as a member of interface '%s'.
                                     By Carefully following the method spec, respond as the method would.
-                                    When responding, follow the given format without any additional text. Keep in mind that your response will be decoded and provided as the method response:
+                                    When responding, follow the given format without any additional text. Keep in mind that your response will be decoded and provided as the method response.
                                     response format: %s
                                 """.format(interfaceName, TranscodingRules.match(specification.returnType).encodeDescription).trimIndent()
                             ),
@@ -69,7 +69,7 @@ class OpenAiInvocationHandler(
                                 """.format(
                                     specification.name,
                                     specification.parameters.joinToString { "${it.name} = ${transcoder.encode(it.value)}, " },
-                                    specification.returnType.qualifiedName,
+                                    specification.returnType.klazz.qualifiedName,
                                     openAiChatAnnotation.description.takeIf { it.isNotEmpty() }?.let { "description = $it" } ?: ""
                                 ).trimIndent()
                             )

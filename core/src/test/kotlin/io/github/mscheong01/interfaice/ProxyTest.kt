@@ -1,3 +1,5 @@
+package io.github.mscheong01.interfaice
+
 import io.github.mscheong01.interfaice.openai.OpenAiChat
 import io.github.mscheong01.interfaice.openai.OpenAiProxyFactory
 import kotlinx.coroutines.runBlocking
@@ -44,6 +46,32 @@ class ProxyTest {
         println(result2)
     }
 
+    @Test
+    fun collectionTest() {
+        val result = proxy.listOfMountainNamesInCountry("Nepal")
+        println(result)
+        val result2 = proxy.setOfRandomNumbersFrom1To100(10)
+        println(result2)
+    }
+
+    @Test
+    fun suspendCollectionTest(): Unit = runBlocking {
+        val result = proxy.listOfCityNamesInCountry("Korea")
+        println(result)
+    }
+
+    @Test
+    fun mapTest() {
+        val result = proxy.mapOfCountryNameToCapitalName("Asia")
+        println(result)
+    }
+
+    @Test
+    fun suspendMapTest(): Unit = runBlocking {
+        val result = proxy.mapOfCountryNameToPopulation("Asia")
+        println(result)
+    }
+
     interface TestInterface {
 
         @OpenAiChat
@@ -57,5 +85,23 @@ class ProxyTest {
 
         @OpenAiChat
         fun greetingMessage(name: String?): String
+
+        @OpenAiChat
+        fun listOfMountainNamesInCountry(countryName: String): List<String>
+
+        @OpenAiChat
+        fun setOfRandomNumbersFrom1To100(count: Int): Set<Int>
+
+        @OpenAiChat(
+            description = "Returns a list of city names in the given country. " +
+                "return names with according language of that country."
+        )
+        suspend fun listOfCityNamesInCountry(countryName: String): List<String>
+
+        @OpenAiChat
+        fun mapOfCountryNameToCapitalName(continentName: String): Map<String, String>
+
+        @OpenAiChat
+        suspend fun mapOfCountryNameToPopulation(continentName: String): Map<String, Int>
     }
 }
