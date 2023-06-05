@@ -23,19 +23,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class DefaultOkHttpOpenAiClient : OpenAiApiAdapter {
-    private lateinit var apiKey: String
+    private lateinit var properties: OpenAiProperties
     private val client = OkHttpClient()
-    override fun setApiKey(apiKey: String) {
-        this.apiKey = apiKey
+    override fun setProperties(properties: OpenAiProperties) {
+        this.properties = properties
     }
 
     override suspend fun chat(request: ChatRequest): ChatResponse {
         val requestBody = mapper.writeValueAsString(request)
         println(requestBody)
         val httpRequest = Request.Builder()
-            .url("https://api.openai.com/v1/chat/completions")
+            .url("${properties.baseUrl}/v1/chat/completions")
             .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
-            .header("Authorization", "Bearer $apiKey")
+            .header("Authorization", "Bearer ${properties.apiKey}")
             .build()
         return withContext(Dispatchers.IO) {
             with(client.newCall(httpRequest).execute()) {

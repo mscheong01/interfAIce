@@ -18,24 +18,33 @@ import java.lang.reflect.Proxy
 import java.util.ServiceLoader
 
 class OpenAiProxyFactory(
-    val apiKey: String
+    private val openAiApiAdapter: OpenAiApiAdapter
 ) : AiProxyFactory {
+
+    constructor(openAiProperties: OpenAiProperties) : this(getOpenAiApiAdapter(openAiProperties))
+
     override fun <T> create(interface_: Class<T>): T {
         return Proxy.newProxyInstance(
             interface_.classLoader,
             arrayOf(interface_),
-            OpenAiInvocationHandler(interface_.simpleName, getOpenAiApiAdapter())
+            OpenAiInvocationHandler(interface_.simpleName, openAiApiAdapter)
         ) as T
     }
 
-    private fun getOpenAiApiAdapter(): OpenAiApiAdapter {
-        val adapters = ServiceLoader.load(OpenAiApiAdapter::class.java)
-        // prefer injected adapter over the default one
-        adapters.firstOrNull()?.let {
-            return it.apply { setApiKey(apiKey) }
+    companion object {
+        private fun getOpenAiApiAdapter(properties: OpenAiProperties): OpenAiApiAdapter {
+            val adapters = ServiceLoader.load(OpenAiApiAdapter::class.java)
+            // prefer injected adapter over the default one
+            adapters.firstOrNull()?.let {
+                return it.apply { setProperties(properties) }
+            }
+            return DefaultOkHttpOpenAiClient().apply {
+                setProperties(properties)
+            }
         }
-        return DefaultOkHttpOpenAiClient().apply {
-            setApiKey(apiKey)
+
+        fun of(apiKey: String): OpenAiProxyFactory {
+            return OpenAiProxyFactory(OpenAiProperties(apiKey))
         }
     }
 }

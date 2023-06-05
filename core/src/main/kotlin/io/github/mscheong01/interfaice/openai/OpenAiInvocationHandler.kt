@@ -34,7 +34,7 @@ class OpenAiInvocationHandler(
 ) : InvocationHandler {
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun invoke(proxy: Any, method: Method, args: Array<out Any>): Any? {
+    override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? {
         val openAiChatAnnotation: OpenAiChat? = method.getAnnotation(OpenAiChat::class.java)
 
         if (openAiChatAnnotation != null) {
@@ -79,7 +79,7 @@ class OpenAiInvocationHandler(
             }
 
             // If it's a suspend function, use Kotlin coroutines to call the client in a non-blocking way
-            return if (method.isSuspendingFunction()) {
+            return if (args != null && args.isNotEmpty() && method.isSuspendingFunction()) {
                 val continuation = args.get(args.size - 1) as Continuation<Any>
                 val job = CoroutineScope(continuation.context).async {
                     responseMono.awaitSingle()

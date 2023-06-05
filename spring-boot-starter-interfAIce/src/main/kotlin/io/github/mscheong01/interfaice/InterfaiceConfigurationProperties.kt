@@ -11,9 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package io.github.mscheong01.interfaice.openai
+package io.github.mscheong01.interfaice
 
-interface OpenAiApiAdapter {
-    fun setProperties(properties: OpenAiProperties)
-    suspend fun chat(request: ChatRequest): ChatResponse
-}
+import io.github.mscheong01.interfaice.openai.OpenAiProperties
+import org.springframework.boot.context.properties.ConfigurationProperties
+
+@ConfigurationProperties(prefix = "spring.interfaice")
+data class InterfaiceConfigurationProperties(
+    val openai: OpenAiProperties
+)
