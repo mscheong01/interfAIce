@@ -76,7 +76,6 @@ class OpenAiInvocationHandler(
                             parameters = {
                                 %s
                             }
-                            return type = %s
                             %s
                             
                             Note that some parameters may be NULL.
@@ -84,7 +83,6 @@ class OpenAiInvocationHandler(
                         """.format(
                             specification.name,
                             specification.parameters.joinToString { "${it.name} = ${transcoder.encode(it.value)}, " },
-                            specification.returnType.klazz.qualifiedName,
                             description.takeUnless { it.isNullOrEmpty() }?.let { "description = $it" } ?: ""
                         ).trimIndent()
                     )
