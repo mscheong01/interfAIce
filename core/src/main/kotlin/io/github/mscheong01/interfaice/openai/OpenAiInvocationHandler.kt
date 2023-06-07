@@ -59,46 +59,39 @@ class OpenAiInvocationHandler(
                     ChatMessage(
                         ChatMessageRole.SYSTEM,
                         """
-                            You will be given a method spec of a method defined by the user as a member of interface '%s'.
+                            You will be given a method spec of a method defined by the user as a member of interface '$interfaceName'.
                             By Carefully following the method spec, respond as the method would.
                             When responding, follow the given format without any additional text. Keep in mind that your response will be decoded and provided as the method response.
-                            response format: %s
-                        """.format(
-                            interfaceName,
-                            returnTypeEncodePrompt
-                        ).trimIndent()
+                            response format: $returnTypeEncodePrompt
+                        """.trimIndent()
                     ),
                     ChatMessage(
                         ChatMessageRole.USER,
                         """
                             method spec:
-                            name = %s
+                            name = ${specification.name}
                             parameters = {
-                                %s
+                                ${specification.parameters.joinToString { "${it.name} = ${transcoder.encode(it.value)}, " }}
                             }
-                            %s
+                            ${description.takeUnless { it.isNullOrEmpty() }?.let { "description = $it" } ?: ""}
                             
                             Note that some parameters may be NULL.
                             Again, make sure to follow the provided response format without any additional text.
-                        """.format(
-                            specification.name,
-                            specification.parameters.joinToString { "${it.name} = ${transcoder.encode(it.value)}, " },
-                            description.takeUnless { it.isNullOrEmpty() }?.let { "description = $it" } ?: ""
-                        ).trimIndent()
+                        """.trimIndent()
                     )
                 )
             )
         ).let { Mono.from(it) }.map { it.choices.first().message.content }
 
         // If it's a suspend function, use Kotlin coroutines to call the client in a non-blocking way
-        return if (args != null && args.isNotEmpty() && method.isSuspendingFunction()) {
-            val continuation = args.get(args.size - 1) as Continuation<Any>
+        return if (!args.isNullOrEmpty() && method.isSuspendingFunction()) {
+            val continuation = args.last() as Continuation<Any>
             val job = CoroutineScope(continuation.context).async {
                 responseMono.map { transcoder.decode(it, specification.returnType) }.awaitSingle()
             }
-            job.invokeOnCompletion {
-                if (it != null) {
-                    continuation.resumeWithException(it)
+            job.invokeOnCompletion { exception ->
+                if (exception != null) {
+                    continuation.resumeWithException(exception)
                 } else {
                     continuation.resume(job.getCompleted())
                 }
