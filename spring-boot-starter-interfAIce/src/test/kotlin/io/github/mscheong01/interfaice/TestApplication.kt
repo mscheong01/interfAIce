@@ -16,6 +16,9 @@ package io.github.mscheong01.interfaice
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
+@EnableInterfaiceProxies(
+    basePackages = ["io.github.mscheong01.interfaice"]
+)
 @SpringBootApplication
 open class TestApplication
 

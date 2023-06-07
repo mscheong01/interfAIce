@@ -18,7 +18,6 @@ import io.github.mscheong01.interfaice.TextObjectTranscoder
 import io.github.mscheong01.interfaice.TranscodingRules
 import io.github.mscheong01.interfaice.util.isSuspendingFunction
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
@@ -36,13 +35,23 @@ class OpenAiInvocationHandler(
     private val openAiApiAdapter: OpenAiApiAdapter
 ) : InvocationHandler {
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? {
         val openAiChatAnnotation: OpenAiChat? = method.getAnnotation(OpenAiChat::class.java)
         val model = openAiChatAnnotation?.model ?: OpenAiChat.DEFAULT_MODEL
         val description = openAiChatAnnotation?.description
 
         val specification = MethodSpecification.from(method, args)
+        val returnTypeEncodePrompt = if (specification.returnType.isReactiveWrapper) {
+            when (specification.returnType.klazz) {
+                Mono::class -> TranscodingRules.match(specification.returnType.typeArguments.first()).encodeDescription
+                Flux::class -> TranscodingRules.ListRule(specification.returnType.typeArguments.first()).encodeDescription
+                Flow::class -> TranscodingRules.ListRule(specification.returnType.typeArguments.first()).encodeDescription
+                else -> throw IllegalArgumentException("Unsupported reactive type: ${specification.returnType.klazz}")
+            }
+        } else {
+            return TranscodingRules.match(specification.returnType).encodeDescription
+        }
+
 
         val responseMono =
             openAiApiAdapter.chat(
@@ -58,7 +67,7 @@ class OpenAiInvocationHandler(
                                 response format: %s
                             """.format(
                                 interfaceName,
-                                transcoder.getEncodePrompt(specification.returnType)
+                                returnTypeEncodePrompt
                             ).trimIndent()
                         ),
                         ChatMessage(

@@ -13,6 +13,7 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice.openai
 
+import io.github.mscheong01.interfaice.EnableInterfaiceProxies
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
@@ -31,7 +32,8 @@ class OpenAiBeanFactoryPostProcessor(
         if (beanFactory !is BeanDefinitionRegistry) {
             return
         }
-        val provider = object : ClassPathScanningCandidateComponentProvider(false) {
+
+        val interfaceProvider = object : ClassPathScanningCandidateComponentProvider(false) {
             override fun isCandidateComponent(beanDefinition: AnnotatedBeanDefinition): Boolean {
                 return super.isCandidateComponent(beanDefinition) || beanDefinition.metadata.isAbstract
             }
@@ -39,7 +41,10 @@ class OpenAiBeanFactoryPostProcessor(
             addIncludeFilter(AnnotationTypeFilter(OpenAiInterface::class.java, true, true))
         }
 
-        val candidates = provider.findCandidateComponents("io.github.mscheong01.interfaice") // TODO: Make this configurable
+        val candidates = getBasePackages(beanFactory).map { basePackage ->
+            interfaceProvider.findCandidateComponents(basePackage) // TODO: Make this configurable
+        }.distinct().flatten()
+
         for (candidate in candidates) {
             try {
                 val beanClass = Class.forName(candidate.beanClassName)
@@ -55,5 +60,22 @@ class OpenAiBeanFactoryPostProcessor(
                 throw IllegalStateException("Unable to find class for bean: " + candidate.getBeanClassName())
             }
         }
+    }
+
+    fun getBasePackages(beanFactory: ConfigurableListableBeanFactory): Set<String> {
+        val basePackages = mutableSetOf<String>()
+        beanFactory.beanDefinitionNames.forEach {
+            val definition = beanFactory.getBeanDefinition(it)
+            if (definition is AnnotatedBeanDefinition) {
+                val metadata = definition.metadata
+                if (metadata.hasAnnotation(EnableInterfaiceProxies::class.java.name)) {
+                    val annotationAttributes = metadata.getAnnotationAttributes(EnableInterfaiceProxies::class.java.name)
+                        ?: return@forEach
+                    val annotatedBasePackages = annotationAttributes.get("basePackages") as Array<String>
+                    basePackages.addAll(annotatedBasePackages)
+                }
+            }
+        }
+        return basePackages
     }
 }

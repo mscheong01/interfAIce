@@ -13,10 +13,6 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice
 
-import kotlinx.coroutines.flow.Flow
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
-
 class TextObjectTranscoder {
     inline fun <reified T : Any> encode(obj: T?): String {
         if (obj == null) return "NULL"
@@ -27,18 +23,5 @@ class TextObjectTranscoder {
     fun <T : Any> decode(str: String, type: TypeSpecification<T>): T {
         val rule = TranscodingRules.match(type)
         return rule.decoder(str)
-    }
-
-    fun <T : Any> getEncodePrompt(type: TypeSpecification<T>): String {
-        return if (type.isReactiveWrapper) {
-            when (type.klazz) {
-                Mono::class -> TranscodingRules.match(type.typeArguments.first()).encodeDescription
-                Flux::class -> TranscodingRules.ListRule(type.typeArguments.first()).encodeDescription
-                Flow::class -> TranscodingRules.ListRule(type.typeArguments.first()).encodeDescription
-                else -> throw IllegalArgumentException("Unsupported reactive type: ${type.klazz}")
-            }
-        } else {
-            return TranscodingRules.match(type).encodeDescription
-        }
     }
 }
