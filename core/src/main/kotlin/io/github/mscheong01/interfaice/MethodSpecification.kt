@@ -14,6 +14,9 @@
 package io.github.mscheong01.interfaice
 
 import io.github.mscheong01.interfaice.util.isSuspendingFunction
+import kotlinx.coroutines.flow.Flow
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
@@ -90,16 +93,31 @@ data class ParameterSpecification(
     val type: TypeSpecification<*>,
     val `value`: Any? = null
 )
-data class TypeSpecification<T : Any>(
+open class TypeSpecification<T : Any>(
     val klazz: KClass<T>,
     val javaType: Type
 ) {
     val typeArguments: List<TypeSpecification<*>>
         get() = (javaType as ParameterizedType).actualTypeArguments.map {
+            val klazz = if (it is ParameterizedType) {
+                (it.rawType as Class<*>).kotlin
+            } else {
+                (it as Class<*>).kotlin
+            }
             TypeSpecification(
-                klazz = (it as Class<*>).kotlin,
+                klazz = klazz,
                 javaType = it
             )
+        }
+
+    val isReactiveWrapper: Boolean
+        get() {
+            val qualifiedName = klazz.qualifiedName
+            return qualifiedName != null &&
+                (
+                    qualifiedName.startsWith("reactor.core.publisher") ||
+                        qualifiedName.startsWith("kotlinx.coroutines.flow")
+                    )
         }
 
     companion object {
@@ -109,6 +127,12 @@ data class TypeSpecification<T : Any>(
                 javaType = obj::class.java
             )
         }
+
+        val REACTIVE_WRAPPER_TYPES = listOf(
+            Mono::class,
+            Flux::class,
+            Flow::class
+        )
     }
 }
 

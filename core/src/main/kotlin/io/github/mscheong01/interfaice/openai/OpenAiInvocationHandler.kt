@@ -20,8 +20,12 @@ import io.github.mscheong01.interfaice.util.isSuspendingFunction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import kotlin.coroutines.Continuation
@@ -36,67 +40,84 @@ class OpenAiInvocationHandler(
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? {
         val openAiChatAnnotation: OpenAiChat? = method.getAnnotation(OpenAiChat::class.java)
+        val model = openAiChatAnnotation?.model ?: OpenAiChat.DEFAULT_MODEL
+        val description = openAiChatAnnotation?.description
 
-        if (openAiChatAnnotation != null) {
-            val specification = MethodSpecification.from(method, args)
-            val responseMono = mono {
-                openAiApiAdapter.chat(
-                    ChatRequest(
-                        model = openAiChatAnnotation.model,
-                        messages = listOf(
-                            ChatMessage(
-                                ChatMessageRole.SYSTEM,
-                                """
-                                    You will be given a method spec of a method defined by the user as a member of interface '%s'.
-                                    By Carefully following the method spec, respond as the method would.
-                                    When responding, follow the given format without any additional text. Keep in mind that your response will be decoded and provided as the method response.
-                                    response format: %s
-                                """.format(interfaceName, TranscodingRules.match(specification.returnType).encodeDescription).trimIndent()
-                            ),
-                            ChatMessage(
-                                ChatMessageRole.USER,
-                                """
-                                    method spec:
-                                    name = %s
-                                    parameters = {
-                                        %s
-                                    }
-                                    return type = %s
+        val specification = MethodSpecification.from(method, args)
+
+        val responseMono = mono {
+            openAiApiAdapter.chat(
+                ChatRequest(
+                    model = model,
+                    messages = listOf(
+                        ChatMessage(
+                            ChatMessageRole.SYSTEM,
+                            """
+                                You will be given a method spec of a method defined by the user as a member of interface '%s'.
+                                By Carefully following the method spec, respond as the method would.
+                                When responding, follow the given format without any additional text. Keep in mind that your response will be decoded and provided as the method response.
+                                response format: %s
+                            """.format(
+                                interfaceName,
+                                transcoder.getEncodePrompt(specification.returnType)
+                            ).trimIndent()
+                        ),
+                        ChatMessage(
+                            ChatMessageRole.USER,
+                            """
+                                method spec:
+                                name = %s
+                                parameters = {
                                     %s
-                                    
-                                    Note that some parameters may be NULL.
-                                    Again, make sure to follow the provided response format without any additional text.
-                                """.format(
-                                    specification.name,
-                                    specification.parameters.joinToString { "${it.name} = ${transcoder.encode(it.value)}, " },
-                                    specification.returnType.klazz.qualifiedName,
-                                    openAiChatAnnotation.description.takeIf { it.isNotEmpty() }?.let { "description = $it" } ?: ""
-                                ).trimIndent()
-                            )
+                                }
+                                return type = %s
+                                %s
+                                
+                                Note that some parameters may be NULL.
+                                Again, make sure to follow the provided response format without any additional text.
+                            """.format(
+                                specification.name,
+                                specification.parameters.joinToString { "${it.name} = ${transcoder.encode(it.value)}, " },
+                                specification.returnType.klazz.qualifiedName,
+                                description.takeUnless { it.isNullOrEmpty() }?.let { "description = $it" } ?: ""
+                            ).trimIndent()
                         )
                     )
-                ).choices.first().message.content.let { transcoder.decode(it, specification.returnType) }
-            }
-
-            // If it's a suspend function, use Kotlin coroutines to call the client in a non-blocking way
-            return if (args != null && args.isNotEmpty() && method.isSuspendingFunction()) {
-                val continuation = args.get(args.size - 1) as Continuation<Any>
-                val job = CoroutineScope(continuation.context).async {
-                    responseMono.awaitSingle()
-                }
-                job.invokeOnCompletion {
-                    if (it != null) {
-                        continuation.resumeWithException(it)
-                    } else {
-                        continuation.resume(job.getCompleted())
-                    }
-                }
-                return kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
-            } else {
-                responseMono.block()
-            }
+                )
+            ).choices.first().message.content
         }
-        return null
+
+        // If it's a suspend function, use Kotlin coroutines to call the client in a non-blocking way
+        return if (args != null && args.isNotEmpty() && method.isSuspendingFunction()) {
+            val continuation = args.get(args.size - 1) as Continuation<Any>
+            val job = CoroutineScope(continuation.context).async {
+                responseMono.map { transcoder.decode(it, specification.returnType) }.awaitSingle()
+            }
+            job.invokeOnCompletion {
+                if (it != null) {
+                    continuation.resumeWithException(it)
+                } else {
+                    continuation.resume(job.getCompleted())
+                }
+            }
+            return kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+        } else if (specification.returnType.isReactiveWrapper) {
+            when (specification.returnType.klazz) {
+                Mono::class -> {
+                    responseMono.map { transcoder.decode(it, specification.returnType.typeArguments.first()) }
+                }
+                Flux::class -> {
+                    responseMono.flatMapIterable { TranscodingRules.ListRule(specification.returnType.typeArguments.first()).decoder(it) }
+                }
+                Flow::class -> {
+                    responseMono.flatMapIterable { TranscodingRules.ListRule(specification.returnType.typeArguments.first()).decoder(it) }.asFlow()
+                }
+                else -> throw IllegalStateException("Unsupported reactive wrapper: ${specification.returnType.klazz}")
+            }
+        } else {
+            responseMono.block()?.let { transcoder.decode(it, specification.returnType) }
+                ?: throw IllegalStateException("Response is null")
+        }
     }
 
     companion object {
