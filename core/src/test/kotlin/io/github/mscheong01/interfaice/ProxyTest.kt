@@ -2,9 +2,14 @@ package io.github.mscheong01.interfaice
 
 import io.github.mscheong01.interfaice.openai.OpenAiChat
 import io.github.mscheong01.interfaice.openai.OpenAiProxyFactory
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 // Copyright 2023 Minsoo Cheong
 //
@@ -72,6 +77,24 @@ class ProxyTest {
         println(result)
     }
 
+    @Test
+    fun monoTest(): Unit = runBlocking {
+        val result = proxy.randomGreetingMessage("Seoul National University").awaitSingle()
+        println(result)
+    }
+
+    @Test
+    fun fluxTest(): Unit = runBlocking {
+        val result = proxy.randomGreetingMessages("Seoul National University").collectList().awaitSingle()
+        println(result)
+    }
+
+    @Test
+    fun flowTest(): Unit = runBlocking {
+        val result = proxy.randomWelcomeMessages("Seoul National University").toList()
+        println(result)
+    }
+
     interface TestInterface {
 
         @OpenAiChat
@@ -103,5 +126,14 @@ class ProxyTest {
 
         @OpenAiChat
         suspend fun mapOfCountryNameToPopulation(continentName: String): Map<String, Int>
+
+        @OpenAiChat
+        fun randomGreetingMessage(fromSchool: String, count: Int = 3): Mono<String>
+
+        @OpenAiChat
+        fun randomGreetingMessages(fromSchool: String, count: Int = 3): Flux<String>
+
+        @OpenAiChat
+        fun randomWelcomeMessages(fromCompany: String, count: Int = 5): Flow<String>
     }
 }
