@@ -52,47 +52,45 @@ class OpenAiInvocationHandler(
             return TranscodingRules.match(specification.returnType).encodeDescription
         }
 
-
-        val responseMono =
-            openAiApiAdapter.chat(
-                ChatRequest(
-                    model = model,
-                    messages = listOf(
-                        ChatMessage(
-                            ChatMessageRole.SYSTEM,
-                            """
-                                You will be given a method spec of a method defined by the user as a member of interface '%s'.
-                                By Carefully following the method spec, respond as the method would.
-                                When responding, follow the given format without any additional text. Keep in mind that your response will be decoded and provided as the method response.
-                                response format: %s
-                            """.format(
-                                interfaceName,
-                                returnTypeEncodePrompt
-                            ).trimIndent()
-                        ),
-                        ChatMessage(
-                            ChatMessageRole.USER,
-                            """
-                                method spec:
-                                name = %s
-                                parameters = {
-                                    %s
-                                }
-                                return type = %s
+        val responseMono = openAiApiAdapter.chat(
+            ChatRequest(
+                model = model,
+                messages = listOf(
+                    ChatMessage(
+                        ChatMessageRole.SYSTEM,
+                        """
+                            You will be given a method spec of a method defined by the user as a member of interface '%s'.
+                            By Carefully following the method spec, respond as the method would.
+                            When responding, follow the given format without any additional text. Keep in mind that your response will be decoded and provided as the method response.
+                            response format: %s
+                        """.format(
+                            interfaceName,
+                            returnTypeEncodePrompt
+                        ).trimIndent()
+                    ),
+                    ChatMessage(
+                        ChatMessageRole.USER,
+                        """
+                            method spec:
+                            name = %s
+                            parameters = {
                                 %s
-                                
-                                Note that some parameters may be NULL.
-                                Again, make sure to follow the provided response format without any additional text.
-                            """.format(
-                                specification.name,
-                                specification.parameters.joinToString { "${it.name} = ${transcoder.encode(it.value)}, " },
-                                specification.returnType.klazz.qualifiedName,
-                                description.takeUnless { it.isNullOrEmpty() }?.let { "description = $it" } ?: ""
-                            ).trimIndent()
-                        )
+                            }
+                            return type = %s
+                            %s
+                            
+                            Note that some parameters may be NULL.
+                            Again, make sure to follow the provided response format without any additional text.
+                        """.format(
+                            specification.name,
+                            specification.parameters.joinToString { "${it.name} = ${transcoder.encode(it.value)}, " },
+                            specification.returnType.klazz.qualifiedName,
+                            description.takeUnless { it.isNullOrEmpty() }?.let { "description = $it" } ?: ""
+                        ).trimIndent()
                     )
                 )
-            ).let { Mono.from(it) }.map { it.choices.first().message.content }
+            )
+        ).let { Mono.from(it) }.map { it.choices.first().message.content }
 
         // If it's a suspend function, use Kotlin coroutines to call the client in a non-blocking way
         return if (args != null && args.isNotEmpty() && method.isSuspendingFunction()) {
