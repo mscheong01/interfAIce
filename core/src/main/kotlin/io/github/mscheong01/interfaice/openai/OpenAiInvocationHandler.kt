@@ -23,7 +23,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.mono
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.lang.reflect.InvocationHandler
@@ -45,7 +44,7 @@ class OpenAiInvocationHandler(
 
         val specification = MethodSpecification.from(method, args)
 
-        val responseMono = mono {
+        val responseMono =
             openAiApiAdapter.chat(
                 ChatRequest(
                     model = model,
@@ -84,8 +83,7 @@ class OpenAiInvocationHandler(
                         )
                     )
                 )
-            ).choices.first().message.content
-        }
+            ).let { Mono.from(it) }.map { it.choices.first().message.content }
 
         // If it's a suspend function, use Kotlin coroutines to call the client in a non-blocking way
         return if (args != null && args.isNotEmpty() && method.isSuspendingFunction()) {

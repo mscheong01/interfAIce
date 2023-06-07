@@ -13,32 +13,36 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice.openai
 
+import reactor.core.publisher.Mono
+
 class MockOpenAiApiAdapter : OpenAiApiAdapter {
     override fun setProperties(properties: OpenAiProperties) {
         // do nothing
     }
 
-    override suspend fun chat(request: ChatRequest): ChatResponse {
+    override fun chat(request: ChatRequest): Mono<ChatResponse> {
         println(request)
-        return ChatResponse(
-            id = "cmpl-3KJYz4J5jzv5J",
-            created = 1627896549,
-            model = "davinci:2020-05-03",
-            choices = listOf(
-                ChatChoice(
-                    index = 0,
-                    message = ChatMessage(
-                        role = ChatMessageRole.ASSISTANT,
-                        content = "Hello, I am a chatbot. I am here to help you."
-                    ),
-                    finishReason = "stop"
+        return Mono.just(
+            ChatResponse(
+                id = "cmpl-3KJYz4J5jzv5J",
+                created = 1627896549,
+                model = "davinci:2020-05-03",
+                choices = listOf(
+                    ChatChoice(
+                        index = 0,
+                        message = ChatMessage(
+                            role = ChatMessageRole.ASSISTANT,
+                            content = "Hello, I am a chatbot. I am here to help you."
+                        ),
+                        finishReason = "stop"
+                    )
+                ),
+                `object` = "text_completion",
+                usage = ChatUsage(
+                    promptTokens = 7,
+                    completionTokens = 7,
+                    totalTokens = 1
                 )
-            ),
-            `object` = "text_completion",
-            usage = ChatUsage(
-                promptTokens = 7,
-                completionTokens = 7,
-                totalTokens = 1
             )
         )
     }

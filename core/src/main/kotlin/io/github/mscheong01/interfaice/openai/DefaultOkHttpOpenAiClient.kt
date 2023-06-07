@@ -19,8 +19,8 @@ import com.squareup.okhttp.MediaType
 import com.squareup.okhttp.OkHttpClient
 import com.squareup.okhttp.Request
 import com.squareup.okhttp.RequestBody
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import reactor.core.publisher.Mono
+import java.io.IOException
 
 class DefaultOkHttpOpenAiClient : OpenAiApiAdapter {
     private lateinit var properties: OpenAiProperties
@@ -29,7 +29,7 @@ class DefaultOkHttpOpenAiClient : OpenAiApiAdapter {
         this.properties = properties
     }
 
-    override suspend fun chat(request: ChatRequest): ChatResponse {
+    override fun chat(request: ChatRequest): Mono<ChatResponse> {
         val requestBody = mapper.writeValueAsString(request)
         println(requestBody)
         val httpRequest = Request.Builder()
@@ -37,14 +37,24 @@ class DefaultOkHttpOpenAiClient : OpenAiApiAdapter {
             .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
             .header("Authorization", "Bearer ${properties.apiKey}")
             .build()
-        return withContext(Dispatchers.IO) {
-            with(client.newCall(httpRequest).execute()) {
-                if (this.isSuccessful) {
-                    return@withContext mapper.readValue(this.body().string())
-                } else {
-                    throw Exception("Error: ${this.code()} ${this.message()}")
+        return Mono.create { sink ->
+            client.newCall(httpRequest).enqueue(object : com.squareup.okhttp.Callback {
+                override fun onFailure(request: Request, e: java.io.IOException) {
+                    sink.error(e)
                 }
-            }
+
+                override fun onResponse(response: com.squareup.okhttp.Response) {
+                    try {
+                        if (!response.isSuccessful) {
+                            throw IOException("Error: ${response.code()} ${response.message()}")
+                        } else {
+                            sink.success(mapper.readValue(response.body().string()))
+                        }
+                    } catch (e: Exception) {
+                        sink.error(e)
+                    }
+                }
+            })
         }
     }
 
