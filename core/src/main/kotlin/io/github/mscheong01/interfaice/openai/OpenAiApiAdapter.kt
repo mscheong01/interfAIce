@@ -13,7 +13,9 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice.openai
 
+import org.reactivestreams.Publisher
+
 interface OpenAiApiAdapter {
     fun setProperties(properties: OpenAiProperties)
-    suspend fun chat(request: ChatRequest): ChatResponse
+    fun chat(request: ChatRequest): Publisher<ChatResponse>
 }

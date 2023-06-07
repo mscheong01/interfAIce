@@ -13,11 +13,11 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice.openai
 
-import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.http.HttpHeaders
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
+import reactor.core.publisher.Mono
 
 class OpenAiApiClient : OpenAiApiAdapter {
     private lateinit var properties: OpenAiProperties
@@ -31,12 +31,11 @@ class OpenAiApiClient : OpenAiApiAdapter {
             .build()
     }
 
-    override suspend fun chat(request: ChatRequest): ChatResponse {
+    override fun chat(request: ChatRequest): Mono<ChatResponse> {
         return webClient.post()
             .uri("/v1/chat/completions")
             .body(BodyInserters.fromValue(request))
             .retrieve()
             .bodyToMono<ChatResponse>()
-            .awaitSingle()
     }
 }
