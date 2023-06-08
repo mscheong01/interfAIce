@@ -35,8 +35,8 @@ class TextObjectTranscoder(
     }
 
     fun <T : Any> match(type: TypeSpecification<T>): TranscodingRules.Rule<T> {
-        val matchedCustomRule = customRules.firstOrNull { it.matchType == type.klazz }
-            ?: customRules.firstOrNull { type.klazz.isSubclassOf(it.matchType) }
+        val matchedCustomRule = customRules.firstOrNull { it.targetType == type.klazz }
+            ?: customRules.firstOrNull { type.klazz.isSubclassOf(it.targetType) }
         if (matchedCustomRule != null) {
             return matchedCustomRule as TranscodingRules.CustomRule<T>
         }
