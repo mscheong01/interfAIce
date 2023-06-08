@@ -42,7 +42,7 @@ class OpenAiBeanFactoryPostProcessor(
         }
 
         val candidates = getBasePackages(beanFactory).map { basePackage ->
-            interfaceProvider.findCandidateComponents(basePackage) // TODO: Make this configurable
+            interfaceProvider.findCandidateComponents(basePackage)
         }.distinct().flatten()
 
         for (candidate in candidates) {
