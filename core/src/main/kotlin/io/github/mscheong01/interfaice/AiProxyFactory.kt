@@ -15,6 +15,7 @@ package io.github.mscheong01.interfaice
 
 interface AiProxyFactory {
     fun <T> create(interface_: Class<T>): T
+    fun addCustomTranscodingRules(customTranscodingRules: List<TranscodingRules.CustomRule<*>>)
 }
 
 inline fun <reified T> AiProxyFactory.create(): T {

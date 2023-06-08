@@ -14,6 +14,7 @@
 package io.github.mscheong01.interfaice.openai
 
 import io.github.mscheong01.interfaice.EnableInterfaiceProxies
+import io.github.mscheong01.interfaice.TranscodingRules
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
@@ -23,10 +24,13 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AnnotationTypeFilter
 
 class OpenAiBeanFactoryPostProcessor(
-    openAiApiAdapter: OpenAiApiAdapter
+    openAiApiAdapter: OpenAiApiAdapter,
+    customTranscodingRules: List<TranscodingRules.CustomRule<*>> = listOf()
 ) : BeanFactoryPostProcessor {
 
-    private val proxyFactory = OpenAiProxyFactory(openAiApiAdapter)
+    private val proxyFactory = OpenAiProxyFactory(openAiApiAdapter).apply {
+        addCustomTranscodingRules(customTranscodingRules)
+    }
 
     override fun postProcessBeanFactory(beanFactory: ConfigurableListableBeanFactory) {
         if (beanFactory !is BeanDefinitionRegistry) {

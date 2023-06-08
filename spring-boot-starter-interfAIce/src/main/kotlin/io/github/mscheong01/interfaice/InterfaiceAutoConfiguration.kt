@@ -27,9 +27,10 @@ open class InterfaiceAutoConfiguration {
 
     @Bean
     open fun openAiBeanFactoryPostProcessor(
-        openAiApiAdapter: OpenAiApiAdapter
+        openAiApiAdapter: OpenAiApiAdapter,
+        customTranscodingRules: List<TranscodingRules.CustomRule<*>>
     ): OpenAiBeanFactoryPostProcessor {
-        return OpenAiBeanFactoryPostProcessor(openAiApiAdapter)
+        return OpenAiBeanFactoryPostProcessor(openAiApiAdapter, customTranscodingRules)
     }
 
     @ConditionalOnMissingBean(OpenAiApiAdapter::class)

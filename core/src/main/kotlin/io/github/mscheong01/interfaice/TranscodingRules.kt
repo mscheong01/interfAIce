@@ -8,6 +8,36 @@ import kotlin.reflect.full.isSubclassOf
 
 object TranscodingRules {
 
+    fun <T : Any> match(type: TypeSpecification<T>): Rule<T> {
+        return when {
+            type.klazz == Byte::class -> BYTE
+            type.klazz == Short::class -> SHORT
+            type.klazz == Int::class -> INT
+            type.klazz == Long::class -> LONG
+            type.klazz == Float::class -> FLOAT
+            type.klazz == Double::class -> DOUBLE
+            type.klazz == Char::class -> CHAR
+            type.klazz == Boolean::class -> BOOLEAN
+            type.klazz == String::class -> STRING
+            type.klazz.isSubclassOf(Collection::class) -> {
+                val entryType = type.typeArguments.first()
+                when {
+                    type.klazz.isSubclassOf(List::class) -> ListRule(entryType)
+                    type.klazz.isSubclassOf(Set::class) -> SetRule(entryType)
+                    else -> throw IllegalArgumentException("unsupported type: $type")
+                }
+            }
+            type.klazz.isSubclassOf(Map::class) -> {
+                val keyType = type.typeArguments[0]
+                val valueType = type.typeArguments[1]
+                MapRule(keyType, valueType)
+            }
+            else -> {
+                throw IllegalArgumentException("unsupported type: ${type.klazz.qualifiedName}")
+            }
+        } as Rule<T>
+    }
+
     val BYTE = KotlinDefaultRule(
         type = Byte::class,
         encodeDescription = """
@@ -92,136 +122,143 @@ object TranscodingRules {
     class ListRule<T : Any>(
         override val entryType: TypeSpecification<T>
     ) : CollectionRule<T>(
-        entryType = entryType,
-        decoder = {
-            val entryRule = match(entryType)
-            val node = ObjectRule.mapper.readTree(it)
+        entryType = entryType
+    ) {
+        override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
+            val node = ObjectRule.mapper.readTree(value)
             if (!node.isArray) {
-                throw IllegalArgumentException("expected json array. actual: $it")
+                throw IllegalArgumentException("expected json array. actual: $value")
             }
             val arrayNode = node as ArrayNode
-            arrayNode.map {
-                entryRule.decoder(it.asText())
+            return arrayNode.map {
+                transcoder.decode(it.asText(), entryType)
             }
         }
-    )
+    }
 
     class SetRule<T : Any>(
         override val entryType: TypeSpecification<T>
     ) : CollectionRule<T>(
-        entryType = entryType,
-        decoder = {
-            val entryRule = match(entryType)
-            val node = ObjectRule.mapper.readTree(it)
+        entryType = entryType
+    ) {
+        override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
+            val node = ObjectRule.mapper.readTree(value)
             if (!node.isArray) {
-                throw IllegalArgumentException("expected json array. actual: $it")
+                throw IllegalArgumentException("expected json array. actual: $value")
             }
             val arrayNode = node as ArrayNode
-            arrayNode.map {
-                entryRule.decoder(it.asText())
+            return arrayNode.map {
+                transcoder.decode(it.asText(), entryType)
             }.toSet()
         }
-    )
-
-    fun <T : Any> match(type: TypeSpecification<T>): Rule<T> {
-        return when {
-            type.klazz == Byte::class -> BYTE
-            type.klazz == Short::class -> SHORT
-            type.klazz == Int::class -> INT
-            type.klazz == Long::class -> LONG
-            type.klazz == Float::class -> FLOAT
-            type.klazz == Double::class -> DOUBLE
-            type.klazz == Char::class -> CHAR
-            type.klazz == Boolean::class -> BOOLEAN
-            type.klazz == String::class -> STRING
-            type.klazz.isSubclassOf(Collection::class) -> {
-                val entryType = type.typeArguments.first()
-                when {
-                    type.klazz.isSubclassOf(List::class) -> ListRule(entryType)
-                    type.klazz.isSubclassOf(Set::class) -> SetRule(entryType)
-                    else -> throw IllegalArgumentException("unsupported type: $type")
-                }
-            }
-            type.klazz.isSubclassOf(Map::class) -> {
-                val keyType = type.typeArguments[0]
-                val valueType = type.typeArguments[1]
-                MapRule(keyType, valueType)
-            }
-            else -> {
-                throw IllegalArgumentException("unsupported type: $type")
-            }
-        } as Rule<T>
     }
 
     class KotlinDefaultRule<T : Any>(
         val type: KClass<T>,
-        override val encodeDescription: String,
-        override val encoder: (T) -> String,
-        override val decoder: (String) -> T
-    ) : Rule<T>
+        val encodeDescription: String,
+        val encoder: (T) -> String,
+        val decoder: (String) -> T
+    ) : Rule<T> {
+        override fun encodeDescription(transcoder: TextObjectTranscoder): String {
+            return encodeDescription
+        }
+
+        override fun encode(transcoder: TextObjectTranscoder, value: T): String {
+            return encoder(value)
+        }
+
+        override fun decode(transcoder: TextObjectTranscoder, value: String): T {
+            return decoder(value)
+        }
+    }
 
     class MapRule<K : Any, V : Any>(
         val keyType: TypeSpecification<K>,
-        val valueType: TypeSpecification<V>,
-        override val encodeDescription: String = """
-            Json object with the following key/value format:
-            key -> {
-                %s
-            }
-            value -> {
-                %s
-            }
-        """.format(
-            match(keyType).encodeDescription,
-            match(valueType).encodeDescription
-        ).trimIndent(),
-        override val encoder: (Map<K, V>) -> String = {
-            ObjectRule.mapper.writeValueAsString(it)
-        },
-        override val decoder: (String) -> Map<K, V> = {
-            val keyRule = match(keyType)
-            val valueRule = match(valueType)
-            val node = ObjectRule.mapper.readTree(it)
+        val valueType: TypeSpecification<V>
+    ) : Rule<Map<K, V>> {
+
+        override fun encodeDescription(transcoder: TextObjectTranscoder): String {
+            return """
+                Json object with the following key/value format:
+                key -> {
+                    %s
+                }
+                value -> {
+                    %s
+                }
+            """.format(
+                transcoder.match(keyType).encodeDescription(transcoder),
+                transcoder.match(valueType).encodeDescription(transcoder)
+            ).trimIndent()
+        }
+
+        override fun encode(transcoder: TextObjectTranscoder, value: Map<K, V>): String {
+            return ObjectRule.mapper.writeValueAsString(value)
+        }
+
+        override fun decode(transcoder: TextObjectTranscoder, value: String): Map<K, V> {
+            val node = ObjectRule.mapper.readTree(value)
             if (!node.isObject) {
-                throw IllegalArgumentException("expected json object. actual: $it")
+                throw IllegalArgumentException("expected json object. actual: $value")
             }
             val objectNode = node as ObjectNode
-            objectNode.fields().asSequence().map { (key, value) ->
-                keyRule.decoder(key) to valueRule.decoder(value.asText())
+            return objectNode.fields().asSequence().map { (key, value) ->
+                transcoder.decode(key, keyType) to transcoder.decode(value.asText(), valueType)
             }.toMap()
-        }
-    ) : Rule<Map<K, V>> {
-        init {
-            if (match(keyType) !is KotlinDefaultRule) {
-                throw IllegalArgumentException("key type must be a Kotlin default type")
-            }
         }
     }
     open class CollectionRule<T : Any>(
-        open val entryType: TypeSpecification<T>,
-        override val encodeDescription: String = """
-            Json array with the following entry format:
-            %s
-        """.format(
-            match(entryType).encodeDescription
-        ).trimIndent(),
-        override val encoder: (Collection<T>) -> String = { ObjectRule.mapper.writeValueAsString(it) },
-        override val decoder: (String) -> Collection<T>
-    ) : Rule<Collection<T>>
+        open val entryType: TypeSpecification<T>
+    ) : Rule<Collection<T>> {
+        override fun encodeDescription(transcoder: TextObjectTranscoder): String {
+            return """
+                Json array with the following entry format:
+                %s
+            """.format(
+                transcoder.match(entryType).encodeDescription(transcoder)
+            ).trimIndent()
+        }
 
-    class ObjectRule<T : Any>(
-        override val encodeDescription: String,
-        override val encoder: (T) -> String,
-        override val decoder: (String) -> T
-    ) : Rule<T> {
+        override fun encode(transcoder: TextObjectTranscoder, value: Collection<T>): String {
+            return ObjectRule.mapper.writeValueAsString(value)
+        }
+
+        override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
+            val node = ObjectRule.mapper.readTree(value)
+            if (!node.isArray) {
+                throw IllegalArgumentException("expected json array. actual: $value")
+            }
+            val arrayNode = node as ArrayNode
+            return arrayNode.map {
+                transcoder.decode(it.asText(), entryType)
+            }
+        }
+    }
+
+    class ObjectRule<T : Any> : Rule<T> {
+        override fun encodeDescription(transcoder: TextObjectTranscoder): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun encode(transcoder: TextObjectTranscoder, value: T): String {
+            return mapper.writeValueAsString(value)
+        }
+
+        override fun decode(transcoder: TextObjectTranscoder, value: String): T {
+            TODO("Not yet implemented")
+        }
         companion object {
             val mapper = jacksonObjectMapper()
         }
     }
 
+    abstract class CustomRule<T : Any>(
+        val matchType: KClass<T>
+    ) : Rule<T>
+
     sealed interface Rule<T : Any> {
-        val encodeDescription: String
-        val encoder: (@UnsafeVariance T) -> String
-        val decoder: (String) -> T
+        fun encodeDescription(transcoder: TextObjectTranscoder): String
+        fun encode(transcoder: TextObjectTranscoder, value: @UnsafeVariance T): String
+        fun decode(transcoder: TextObjectTranscoder, value: String): T
     }
 }

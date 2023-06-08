@@ -14,21 +14,29 @@
 package io.github.mscheong01.interfaice.openai
 
 import io.github.mscheong01.interfaice.AiProxyFactory
+import io.github.mscheong01.interfaice.TranscodingRules
 import java.lang.reflect.Proxy
 import java.util.ServiceLoader
 
 class OpenAiProxyFactory(
-    private val openAiApiAdapter: OpenAiApiAdapter
+    private val openAiApiAdapter: OpenAiApiAdapter,
 ) : AiProxyFactory {
+    val customTranscodingRules = mutableListOf<TranscodingRules.CustomRule<*>>()
 
-    constructor(openAiProperties: OpenAiProperties) : this(getOpenAiApiAdapter(openAiProperties))
+    constructor(
+        openAiProperties: OpenAiProperties,
+    ) : this(getOpenAiApiAdapter(openAiProperties))
 
     override fun <T> create(interface_: Class<T>): T {
         return Proxy.newProxyInstance(
             interface_.classLoader,
             arrayOf(interface_),
-            OpenAiInvocationHandler(interface_.simpleName, openAiApiAdapter)
+            OpenAiInvocationHandler(interface_.simpleName, openAiApiAdapter, customTranscodingRules)
         ) as T
+    }
+
+    override fun addCustomTranscodingRules(customTranscodingRules: List<TranscodingRules.CustomRule<*>>) {
+        this.customTranscodingRules.addAll(customTranscodingRules)
     }
 
     companion object {
@@ -43,8 +51,13 @@ class OpenAiProxyFactory(
             }
         }
 
-        fun of(apiKey: String): OpenAiProxyFactory {
-            return OpenAiProxyFactory(OpenAiProperties(apiKey))
+        fun of(
+            apiKey: String,
+            customTranscodingRules: List<TranscodingRules.CustomRule<*>> = listOf()
+        ): OpenAiProxyFactory {
+            return OpenAiProxyFactory(OpenAiProperties(apiKey)).apply {
+                addCustomTranscodingRules(customTranscodingRules)
+            }
         }
     }
 }
