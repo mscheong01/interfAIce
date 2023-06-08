@@ -32,8 +32,11 @@ import kotlin.coroutines.resumeWithException
 
 class OpenAiInvocationHandler(
     private val interfaceName: String,
-    private val openAiApiAdapter: OpenAiApiAdapter
+    private val openAiApiAdapter: OpenAiApiAdapter,
+    customTranscodingRules: List<TranscodingRules.CustomRule<*>> = listOf()
 ) : InvocationHandler {
+
+    val transcoder = TextObjectTranscoder(customTranscodingRules)
 
     override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? {
         val openAiChatAnnotation: OpenAiChat? = method.getAnnotation(OpenAiChat::class.java)
@@ -43,13 +46,13 @@ class OpenAiInvocationHandler(
         val specification = MethodSpecification.from(method, args)
         val returnTypeEncodePrompt = if (specification.returnType.isReactiveWrapper) {
             when (specification.returnType.klazz) {
-                Mono::class -> TranscodingRules.match(specification.returnType.typeArguments.first()).encodeDescription
-                Flux::class -> TranscodingRules.ListRule(specification.returnType.typeArguments.first()).encodeDescription
-                Flow::class -> TranscodingRules.ListRule(specification.returnType.typeArguments.first()).encodeDescription
+                Mono::class -> transcoder.match(specification.returnType.typeArguments.first()).encodeDescription(transcoder)
+                Flux::class -> TranscodingRules.ListRule(specification.returnType.typeArguments.first()).encodeDescription(transcoder)
+                Flow::class -> TranscodingRules.ListRule(specification.returnType.typeArguments.first()).encodeDescription(transcoder)
                 else -> throw IllegalArgumentException("Unsupported reactive type: ${specification.returnType.klazz}")
             }
         } else {
-            return TranscodingRules.match(specification.returnType).encodeDescription
+            transcoder.match(specification.returnType).encodeDescription(transcoder)
         }
 
         val responseMono = openAiApiAdapter.chat(
@@ -103,10 +106,10 @@ class OpenAiInvocationHandler(
                     responseMono.map { transcoder.decode(it, specification.returnType.typeArguments.first()) }
                 }
                 Flux::class -> {
-                    responseMono.flatMapIterable { TranscodingRules.ListRule(specification.returnType.typeArguments.first()).decoder(it) }
+                    responseMono.flatMapIterable { TranscodingRules.ListRule(specification.returnType.typeArguments.first()).decode(transcoder, it) }
                 }
                 Flow::class -> {
-                    responseMono.flatMapIterable { TranscodingRules.ListRule(specification.returnType.typeArguments.first()).decoder(it) }.asFlow()
+                    responseMono.flatMapIterable { TranscodingRules.ListRule(specification.returnType.typeArguments.first()).decode(transcoder, it) }.asFlow()
                 }
                 else -> throw IllegalStateException("Unsupported reactive wrapper: ${specification.returnType.klazz}")
             }
@@ -114,9 +117,5 @@ class OpenAiInvocationHandler(
             responseMono.block()?.let { transcoder.decode(it, specification.returnType) }
                 ?: throw IllegalStateException("Response is null")
         }
-    }
-
-    companion object {
-        val transcoder = TextObjectTranscoder()
     }
 }

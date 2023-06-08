@@ -13,15 +13,33 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice
 
-class TextObjectTranscoder {
+import kotlin.reflect.full.isSubclassOf
+
+class TextObjectTranscoder(
+    val customRules: List<TranscodingRules.CustomRule<*>> = listOf()
+) {
     inline fun <reified T : Any> encode(obj: T?): String {
         if (obj == null) return "NULL"
-        val rule = TranscodingRules.match(TypeSpecification.from(obj))
-        return rule.encoder(obj)
+        val rule = match(TypeSpecification.from(obj))
+        return rule.encode(this, obj)
     }
 
     fun <T : Any> decode(str: String, type: TypeSpecification<T>): T {
-        val rule = TranscodingRules.match(type)
-        return rule.decoder(str)
+        val rule = match(type)
+        return rule.decode(this, str)
+    }
+
+    fun <T : Any> encodeDescription(tyep: TypeSpecification<T>): String {
+        val rule = match(tyep)
+        return rule.encodeDescription(this)
+    }
+
+    fun <T : Any> match(type: TypeSpecification<T>): TranscodingRules.Rule<T> {
+        val matchedCustomRule = customRules.firstOrNull { it.matchType == type.klazz }
+            ?: customRules.firstOrNull { type.klazz.isSubclassOf(it.matchType) }
+        if (matchedCustomRule != null) {
+            return matchedCustomRule as TranscodingRules.CustomRule<T>
+        }
+        return TranscodingRules.match(type)
     }
 }
