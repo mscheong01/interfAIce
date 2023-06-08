@@ -28,7 +28,9 @@ class OpenAiBeanFactoryPostProcessor(
     customTranscodingRules: List<TranscodingRules.CustomRule<*>> = listOf()
 ) : BeanFactoryPostProcessor {
 
-    private val proxyFactory = OpenAiProxyFactory(openAiApiAdapter, customTranscodingRules)
+    private val proxyFactory = OpenAiProxyFactory(openAiApiAdapter).apply {
+        addCustomTranscodingRules(customTranscodingRules)
+    }
 
     override fun postProcessBeanFactory(beanFactory: ConfigurableListableBeanFactory) {
         if (beanFactory !is BeanDefinitionRegistry) {

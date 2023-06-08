@@ -20,13 +20,12 @@ import java.util.ServiceLoader
 
 class OpenAiProxyFactory(
     private val openAiApiAdapter: OpenAiApiAdapter,
-    private val customTranscodingRules: List<TranscodingRules.CustomRule<*>> = listOf()
 ) : AiProxyFactory {
+    val customTranscodingRules = mutableListOf<TranscodingRules.CustomRule<*>>()
 
     constructor(
         openAiProperties: OpenAiProperties,
-        customTranscodingRules: List<TranscodingRules.CustomRule<*>> = listOf()
-    ) : this(getOpenAiApiAdapter(openAiProperties), customTranscodingRules)
+    ) : this(getOpenAiApiAdapter(openAiProperties))
 
     override fun <T> create(interface_: Class<T>): T {
         return Proxy.newProxyInstance(
@@ -34,6 +33,10 @@ class OpenAiProxyFactory(
             arrayOf(interface_),
             OpenAiInvocationHandler(interface_.simpleName, openAiApiAdapter, customTranscodingRules)
         ) as T
+    }
+
+    override fun addCustomTranscodingRules(customTranscodingRules: List<TranscodingRules.CustomRule<*>>) {
+        this.customTranscodingRules.addAll(customTranscodingRules)
     }
 
     companion object {
@@ -52,7 +55,9 @@ class OpenAiProxyFactory(
             apiKey: String,
             customTranscodingRules: List<TranscodingRules.CustomRule<*>> = listOf()
         ): OpenAiProxyFactory {
-            return OpenAiProxyFactory(OpenAiProperties(apiKey), customTranscodingRules)
+            return OpenAiProxyFactory(OpenAiProperties(apiKey)).apply {
+                addCustomTranscodingRules(customTranscodingRules)
+            }
         }
     }
 }
