@@ -8,7 +8,7 @@ import kotlin.reflect.full.isSubclassOf
 
 object TranscodingRules {
 
-    fun <T : Any> match(type: TypeSpecification<T>): Rule<T> {
+    fun <T : Any> matchBuiltInRule(type: TypeSpecification<T>): Rule<T> {
         return when {
             type.klazz == Byte::class -> BYTE
             type.klazz == Short::class -> SHORT
@@ -32,6 +32,7 @@ object TranscodingRules {
                 val valueType = type.typeArguments[1]
                 MapRule(keyType, valueType)
             }
+            type.klazz.isSubclassOf(Enum::class) -> EnumRule(type as TypeSpecification<out Enum<*>>)
             else -> {
                 throw IllegalArgumentException("unsupported type: ${type.klazz.qualifiedName}")
             }
@@ -235,6 +236,33 @@ object TranscodingRules {
         }
     }
 
+    class EnumRule<T : Enum<T>>(
+        val enumType: TypeSpecification<@UnsafeVariance T>
+    ) : Rule<T> {
+        override fun encodeDescription(transcoder: TextObjectTranscoder): String {
+            val enumConstants = enumType.klazz.java.enumConstants
+            if (enumConstants != null) {
+                return """
+                    one of the following values:
+                    %s
+                """.format(
+                    enumConstants.joinToString(", ") { it.name }
+                ).trimIndent()
+            } else {
+                throw IllegalArgumentException("enum type $enumType has no constants")
+            }
+        }
+
+        override fun encode(transcoder: TextObjectTranscoder, value: T): String {
+            return value.name
+        }
+
+        override fun decode(transcoder: TextObjectTranscoder, value: String): T {
+            return enumType.klazz.java.enumConstants?.find { it.name == value }
+                ?: throw IllegalArgumentException("no enum constant $value for type $enumType")
+        }
+    }
+
     class ObjectRule<T : Any> : Rule<T> {
         override fun encodeDescription(transcoder: TextObjectTranscoder): String {
             TODO("Not yet implemented")
@@ -253,7 +281,7 @@ object TranscodingRules {
     }
 
     abstract class CustomRule<T : Any>(
-        val matchType: KClass<T>
+        val targetType: KClass<T>
     ) : Rule<T>
 
     sealed interface Rule<T : Any> {

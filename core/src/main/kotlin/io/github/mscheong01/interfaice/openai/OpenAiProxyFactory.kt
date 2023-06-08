@@ -19,12 +19,12 @@ import java.lang.reflect.Proxy
 import java.util.ServiceLoader
 
 class OpenAiProxyFactory(
-    private val openAiApiAdapter: OpenAiApiAdapter,
+    private val openAiApiAdapter: OpenAiApiAdapter
 ) : AiProxyFactory {
     val customTranscodingRules = mutableListOf<TranscodingRules.CustomRule<*>>()
 
     constructor(
-        openAiProperties: OpenAiProperties,
+        openAiProperties: OpenAiProperties
     ) : this(getOpenAiApiAdapter(openAiProperties))
 
     override fun <T> create(interface_: Class<T>): T {
