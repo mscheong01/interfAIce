@@ -40,6 +40,6 @@ class TextObjectTranscoder(
         if (matchedCustomRule != null) {
             return matchedCustomRule as TranscodingRules.CustomRule<T>
         }
-        return TranscodingRules.match(type)
+        return TranscodingRules.matchBuiltInRule(type)
     }
 }
