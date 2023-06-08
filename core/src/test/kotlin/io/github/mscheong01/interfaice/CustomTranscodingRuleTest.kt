@@ -35,7 +35,7 @@ class CustomTranscodingRuleTest {
     @Test
     fun testCustomTranscodingRule() {
         val customTranscodingRule = object : TranscodingRules.CustomRule<LocalDate>(
-            matchType = LocalDate::class
+            targetType = LocalDate::class
         ) {
             override fun encodeDescription(transcoder: TextObjectTranscoder): String {
                 return "A date lieteral in the format of YYYY-MM-DD"
