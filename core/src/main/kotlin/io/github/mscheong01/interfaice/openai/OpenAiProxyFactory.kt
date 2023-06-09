@@ -51,6 +51,14 @@ class OpenAiProxyFactory(
             }
         }
 
+        @JvmStatic
+        fun of(
+            apiKey: String,
+        ): OpenAiProxyFactory {
+            return OpenAiProxyFactory(OpenAiProperties(apiKey))
+        }
+
+        @JvmStatic
         fun of(
             apiKey: String,
             customTranscodingRules: List<TranscodingRules.CustomRule<*>> = listOf()
