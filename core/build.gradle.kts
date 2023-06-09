@@ -25,7 +25,6 @@ java {
 publishing {
     publications {
         named<MavenPublication>("maven") {
-            from(components["java"])
             pom {
                 name.set("interfAIce core library")
                 artifactId = "interfAIce-core"

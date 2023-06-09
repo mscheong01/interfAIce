@@ -49,6 +49,7 @@ subprojects {
     publishing {
         publications {
             create<MavenPublication>("maven") {
+                from(components["java"])
                 pom {
                     url.set("https://github.com/mscheong01/interfAIce")
                     licenses {
@@ -115,7 +116,7 @@ subprojects {
     }
 }
 
-project(":spring-boot-starter-interfAIce") {
+project(":interfAIce-spring-boot-starter") {
     apply {
         plugin("org.springframework.boot")
         plugin("io.spring.dependency-management")
