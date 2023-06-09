@@ -1,6 +1,5 @@
 package io.github.mscheong01.interfaice
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -129,7 +128,11 @@ object TranscodingRules {
             require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it, entryType)
+                if (it.isValueNode) {
+                    transcoder.decode(it.asText(), entryType)
+                } else {
+                    transcoder.decode(it.toString(), entryType)
+                }
             }
         }
     }
@@ -144,7 +147,11 @@ object TranscodingRules {
             require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it, entryType)
+                if (it.isValueNode) {
+                    transcoder.decode(it.asText(), entryType)
+                } else {
+                    transcoder.decode(it.toString(), entryType)
+                }
             }.toSet()
         }
     }
@@ -196,8 +203,12 @@ object TranscodingRules {
             val node = ObjectRule.mapper.readTree(value)
             require(node.isObject) { "expected json object. actual: $value" }
             val objectNode = node as ObjectNode
-            return objectNode.fields().asSequence().map { (key, value) ->
-                transcoder.decode(key, keyType) to transcoder.decode(value, valueType)
+            return objectNode.fields().asSequence().map { (k, v) ->
+                transcoder.decode(k, keyType) to if (v.isValueNode) {
+                    transcoder.decode(v.asText(), valueType)
+                } else {
+                    transcoder.decode(v.toString(), valueType)
+                }
             }.toMap()
         }
     }
@@ -223,7 +234,11 @@ object TranscodingRules {
             require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it, entryType)
+                if (it.isValueNode) {
+                    transcoder.decode(it.asText(), entryType)
+                } else {
+                    transcoder.decode(it.toString(), entryType)
+                }
             }
         }
     }
@@ -297,7 +312,11 @@ object TranscodingRules {
                     javaType = field.genericType
                 )
 
-                key to transcoder.decode(valueNode, fieldType)
+                key to if (valueNode.isValueNode) {
+                    transcoder.decode(valueNode.asText(), fieldType)
+                } else {
+                    transcoder.decode(valueNode.toString(), fieldType)
+                }
             }.toMap()
 
             return mapper.convertValue(fieldsMap, type.klazz.java)
@@ -316,13 +335,5 @@ object TranscodingRules {
         fun encodeDescription(transcoder: TextObjectTranscoder): String
         fun encode(transcoder: TextObjectTranscoder, value: @UnsafeVariance T): String
         fun decode(transcoder: TextObjectTranscoder, value: String): T
-    }
-
-    private fun <T : Any> TextObjectTranscoder.decode(node: JsonNode, type: TypeSpecification<T>): T {
-        return if (node.isValueNode) {
-            decode(node.asText(), type)
-        } else {
-            decode(node.toString(), type)
-        }
     }
 }
