@@ -9,3 +9,21 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux")
 }
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+publishing {
+    publications {
+        named<MavenPublication>("maven") {
+            from(components["java"])
+            pom {
+                name.set("interfAIce spring boot starter")
+                artifactId = "interfAIce-spring-boot-starter"
+                description.set("interfAIce spring boot starter")
+            }
+        }
+    }
+}

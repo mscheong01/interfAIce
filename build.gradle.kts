@@ -115,7 +115,7 @@ subprojects {
     }
 }
 
-project(":spring-boot-starter-interfAIce") {
+project(":interfAIce-spring-boot-starter") {
     apply {
         plugin("org.springframework.boot")
         plugin("io.spring.dependency-management")

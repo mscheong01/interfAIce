@@ -1,3 +1,3 @@
 rootProject.name = "interfAIce"
 include("core")
-include("spring-boot-starter-interfAIce")
+include("interfAIce-spring-boot-starter")
