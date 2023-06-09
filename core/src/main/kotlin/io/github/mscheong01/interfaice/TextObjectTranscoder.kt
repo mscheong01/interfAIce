@@ -13,6 +13,7 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice
 
+import com.fasterxml.jackson.databind.JsonNode
 import kotlin.reflect.full.isSubclassOf
 
 class TextObjectTranscoder(
@@ -27,6 +28,14 @@ class TextObjectTranscoder(
     fun <T : Any> decode(str: String, type: TypeSpecification<T>): T {
         val rule = match(type)
         return rule.decode(this, str)
+    }
+
+    fun <T : Any> decode(node: JsonNode, type: TypeSpecification<T>): T {
+        return if (node.isValueNode) {
+            decode(node.asText(), type)
+        } else {
+            decode(node.toString(), type)
+        }
     }
 
     fun <T : Any> encodeDescription(tyep: TypeSpecification<T>): String {

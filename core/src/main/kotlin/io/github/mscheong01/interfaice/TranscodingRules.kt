@@ -7,7 +7,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
 object TranscodingRules {
-
+    @Suppress("UNCHECKED_CAST")
     fun <T : Any> matchBuiltInRule(type: TypeSpecification<T>): Rule<T> {
         return when {
             type.klazz == Byte::class -> BYTE
@@ -33,9 +33,7 @@ object TranscodingRules {
                 MapRule(keyType, valueType)
             }
             type.klazz.isSubclassOf(Enum::class) -> EnumRule(type as TypeSpecification<out Enum<*>>)
-            else -> {
-                throw IllegalArgumentException("unsupported type: ${type.klazz.qualifiedName}")
-            }
+            else -> ObjectRule(type)
         } as Rule<T>
     }
 
@@ -127,12 +125,10 @@ object TranscodingRules {
     ) {
         override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
             val node = ObjectRule.mapper.readTree(value)
-            if (!node.isArray) {
-                throw IllegalArgumentException("expected json array. actual: $value")
-            }
+            require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it.asText(), entryType)
+                transcoder.decode(it, entryType)
             }
         }
     }
@@ -144,12 +140,10 @@ object TranscodingRules {
     ) {
         override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
             val node = ObjectRule.mapper.readTree(value)
-            if (!node.isArray) {
-                throw IllegalArgumentException("expected json array. actual: $value")
-            }
+            require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it.asText(), entryType)
+                transcoder.decode(it, entryType)
             }.toSet()
         }
     }
@@ -187,10 +181,10 @@ object TranscodingRules {
                 value -> {
                     %s
                 }
-            """.format(
+            """.trimIndent().format(
                 transcoder.match(keyType).encodeDescription(transcoder),
                 transcoder.match(valueType).encodeDescription(transcoder)
-            ).trimIndent()
+            )
         }
 
         override fun encode(transcoder: TextObjectTranscoder, value: Map<K, V>): String {
@@ -199,15 +193,14 @@ object TranscodingRules {
 
         override fun decode(transcoder: TextObjectTranscoder, value: String): Map<K, V> {
             val node = ObjectRule.mapper.readTree(value)
-            if (!node.isObject) {
-                throw IllegalArgumentException("expected json object. actual: $value")
-            }
+            require(node.isObject) { "expected json object. actual: $value" }
             val objectNode = node as ObjectNode
             return objectNode.fields().asSequence().map { (key, value) ->
-                transcoder.decode(key, keyType) to transcoder.decode(value.asText(), valueType)
+                transcoder.decode(key, keyType) to transcoder.decode(value, valueType)
             }.toMap()
         }
     }
+
     open class CollectionRule<T : Any>(
         open val entryType: TypeSpecification<T>
     ) : Rule<Collection<T>> {
@@ -215,9 +208,9 @@ object TranscodingRules {
             return """
                 Json array with the following entry format:
                 %s
-            """.format(
+            """.trimIndent().format(
                 transcoder.match(entryType).encodeDescription(transcoder)
-            ).trimIndent()
+            )
         }
 
         override fun encode(transcoder: TextObjectTranscoder, value: Collection<T>): String {
@@ -226,12 +219,10 @@ object TranscodingRules {
 
         override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
             val node = ObjectRule.mapper.readTree(value)
-            if (!node.isArray) {
-                throw IllegalArgumentException("expected json array. actual: $value")
-            }
+            require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it.asText(), entryType)
+                transcoder.decode(it, entryType)
             }
         }
     }
@@ -245,9 +236,9 @@ object TranscodingRules {
                 return """
                     one of the following values:
                     %s
-                """.format(
+                """.trimIndent().format(
                     enumConstants.joinToString(", ") { it.name }
-                ).trimIndent()
+                )
             } else {
                 throw IllegalArgumentException("enum type $enumType has no constants")
             }
@@ -263,9 +254,30 @@ object TranscodingRules {
         }
     }
 
-    class ObjectRule<T : Any> : Rule<T> {
+    class ObjectRule<T : Any>(
+        val type: TypeSpecification<T>
+    ) : Rule<T> {
         override fun encodeDescription(transcoder: TextObjectTranscoder): String {
-            TODO("Not yet implemented")
+            return """
+                Json object with the following fields:
+                %s
+            """.trimIndent().format(
+                type.klazz.java.declaredFields.joinToString("\n") { field ->
+                    val typeSpecification = TypeSpecification(
+                        klazz = field.type.kotlin,
+                        javaType = field.genericType
+                    )
+
+                    """
+                        %s -> {
+                            %s
+                        }
+                    """.trimIndent().format(
+                        field.name,
+                        transcoder.match(typeSpecification).encodeDescription(transcoder)
+                    )
+                }
+            )
         }
 
         override fun encode(transcoder: TextObjectTranscoder, value: T): String {
@@ -273,8 +285,23 @@ object TranscodingRules {
         }
 
         override fun decode(transcoder: TextObjectTranscoder, value: String): T {
-            TODO("Not yet implemented")
+            val node = mapper.readTree(value)
+            require(node.isObject) { "expected json object. actual: $value" }
+            val objectNode = node as ObjectNode
+
+            val fieldsMap = objectNode.fields().asSequence().map { (key, valueNode) ->
+                val field = type.klazz.java.getDeclaredField(key)
+                val fieldType = TypeSpecification(
+                    klazz = field.type.kotlin,
+                    javaType = field.genericType
+                )
+
+                key to transcoder.decode(valueNode, fieldType)
+            }.toMap()
+
+            return mapper.convertValue(fieldsMap, type.klazz.java)
         }
+
         companion object {
             val mapper = jacksonObjectMapper()
         }
