@@ -49,7 +49,6 @@ subprojects {
     publishing {
         publications {
             create<MavenPublication>("maven") {
-                from(components["java"])
                 pom {
                     url.set("https://github.com/mscheong01/interfAIce")
                     licenses {
