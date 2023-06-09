@@ -53,7 +53,7 @@ class OpenAiProxyFactory(
 
         @JvmStatic
         fun of(
-            apiKey: String,
+            apiKey: String
         ): OpenAiProxyFactory {
             return OpenAiProxyFactory(OpenAiProperties(apiKey))
         }
