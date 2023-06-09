@@ -1,5 +1,6 @@
 package io.github.mscheong01.interfaice
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -315,5 +316,13 @@ object TranscodingRules {
         fun encodeDescription(transcoder: TextObjectTranscoder): String
         fun encode(transcoder: TextObjectTranscoder, value: @UnsafeVariance T): String
         fun decode(transcoder: TextObjectTranscoder, value: String): T
+    }
+
+    private fun <T : Any> TextObjectTranscoder.decode(node: JsonNode, type: TypeSpecification<T>): T {
+        return if (node.isValueNode) {
+            decode(node.asText(), type)
+        } else {
+            decode(node.toString(), type)
+        }
     }
 }
