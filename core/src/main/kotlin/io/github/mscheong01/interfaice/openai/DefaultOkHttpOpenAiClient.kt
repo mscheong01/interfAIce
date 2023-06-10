@@ -36,7 +36,7 @@ class DefaultOkHttpOpenAiClient : OpenAiApiAdapter {
 
     override fun chat(request: ChatRequest): Mono<ChatResponse> {
         val requestBody = mapper.writeValueAsString(request)
-        println(requestBody)
+
         val httpRequest = Request.Builder()
             .url("${properties.baseUrl}/v1/chat/completions")
             .post(RequestBody.create(MediaType.parse("application/json"), requestBody))
