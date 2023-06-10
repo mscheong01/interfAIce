@@ -305,23 +305,71 @@ object TranscodingRules {
             require(node.isObject) { "expected json object. actual: $value" }
             val objectNode = node as ObjectNode
 
-            return type.klazz.java.declaredConstructors.find { it.parameterCount == 0 }?.let { noArgsConstructor ->
-                noArgsConstructor.isAccessible = true
-                val obj: T
-                try {
-                    @Suppress("UNCHECKED_CAST")
-                    obj = noArgsConstructor.newInstance() as T
-                } finally {
-                    noArgsConstructor.isAccessible = false
-                }
+            val constructor = type.klazz.java.declaredConstructors.find { constructor ->
+                constructor.parameters.all { parameter -> objectNode.has(parameter.name) }
+            } ?: throw IllegalStateException("no constructor found for type ${type.klazz.java}")
 
-                type.klazz.java.declaredFields.forEach { field ->
-                    val valueNode = objectNode[field.name]
+            val parameters = constructor.parameters
+            val arguments = parameters.map { parameter ->
+                objectNode[parameter.name]?.let { valueNode ->
+                    objectNode.remove(parameter.name)
+
+                    val fieldType = TypeSpecification(
+                        klazz = parameter.type.kotlin,
+                        javaType = parameter.parameterizedType
+                    )
+
+                    if (valueNode.isValueNode) {
+                        transcoder.decode(valueNode.asText(), fieldType)
+                    } else {
+                        transcoder.decode(valueNode.toString(), fieldType)
+                    }
+                }
+            }.toTypedArray()
+
+            constructor.isAccessible = true
+            val obj: T
+            try {
+                @Suppress("UNCHECKED_CAST")
+                obj = constructor.newInstance(*arguments) as T
+            } finally {
+                constructor.isAccessible = false
+            }
+
+            if (node.isEmpty) return obj
+
+            val setters = type.klazz.java.methods.filter { it.name.startsWith("set") && it.parameterCount == 1 }
+            setters.forEach { setter ->
+                val fieldName = setter.name.substring(3).replaceFirstChar { it.lowercase() }
+                objectNode[fieldName]?.let { valueNode ->
+                    objectNode.remove(fieldName)
+
+                    val fieldType = TypeSpecification(
+                        klazz = setter.parameters[0].type.kotlin,
+                        javaType = setter.parameters[0].parameterizedType
+                    )
+                    setter.invoke(
+                        obj,
+                        if (valueNode.isValueNode) {
+                            transcoder.decode(valueNode.asText(), fieldType)
+                        } else {
+                            transcoder.decode(valueNode.toString(), fieldType)
+                        }
+                    )
+                }
+            }
+
+            if (node.isEmpty) return obj
+
+            type.klazz.java.declaredFields.forEach { field ->
+                val fieldName = field.name
+                objectNode[fieldName]?.let { valueNode ->
+                    objectNode.remove(fieldName)
+
                     val fieldType = TypeSpecification(
                         klazz = field.type.kotlin,
                         javaType = field.genericType
                     )
-
                     field.isAccessible = true
                     try {
                         field.set(
@@ -336,43 +384,9 @@ object TranscodingRules {
                         field.isAccessible = false
                     }
                 }
-                obj
-            } ?: run {
-                val constructor = type.klazz.java.declaredConstructors.find { constructor ->
-                    constructor.parameters.all { parameter -> objectNode.has(parameter.name) }
-                } ?: throw IllegalStateException(
-                    """
-                        No suitable constructor found for type ${type.klazz.java}.
-                        Expected a constructor with no parameters or with parameters matching the fields of the json object.
-                        If you want to use one with parameters, the compile option '-parameters' must be enabled.
-                    """.trimIndent()
-                )
-
-                val parameters = constructor.parameters
-                val arguments = parameters.map { parameter ->
-                    val valueNode = objectNode[parameter.name]
-                    val fieldType = TypeSpecification(
-                        klazz = parameter.type.kotlin,
-                        javaType = parameter.parameterizedType
-                    )
-
-                    if (valueNode.isValueNode) {
-                        transcoder.decode(valueNode.asText(), fieldType)
-                    } else {
-                        transcoder.decode(valueNode.toString(), fieldType)
-                    }
-                }.toTypedArray()
-
-                constructor.isAccessible = true
-                val obj: T
-                try {
-                    @Suppress("UNCHECKED_CAST")
-                    obj = constructor.newInstance(*arguments) as T
-                } finally {
-                    constructor.isAccessible = false
-                }
-                obj
             }
+
+            return obj
         }
 
         companion object {
