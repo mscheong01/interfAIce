@@ -15,5 +15,10 @@ package io.github.mscheong01.interfaice.openai
 
 data class OpenAiProperties(
     val apiKey: String,
-    val baseUrl: String = "https://api.openai.com"
-)
+    val baseUrl: String = "https://api.openai.com",
+    val chat: ChatProperties = ChatProperties()
+) {
+    data class ChatProperties(
+        val defaultModel: String = "gpt-3.5-turbo"
+    )
+}

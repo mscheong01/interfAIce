@@ -6,6 +6,6 @@ annotation class OpenAiChat(
     val description: String = ""
 ) {
     companion object {
-        const val DEFAULT_MODEL = "gpt-3.5-turbo"
+        const val DEFAULT_MODEL = "default"
     }
 }

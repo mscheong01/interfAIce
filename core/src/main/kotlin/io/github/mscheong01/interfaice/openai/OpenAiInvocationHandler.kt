@@ -40,7 +40,11 @@ class OpenAiInvocationHandler(
 
     override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? {
         val openAiChatAnnotation: OpenAiChat? = method.getAnnotation(OpenAiChat::class.java)
-        val model = openAiChatAnnotation?.model ?: OpenAiChat.DEFAULT_MODEL
+        val model = if (openAiChatAnnotation == null || openAiChatAnnotation.model == OpenAiChat.DEFAULT_MODEL) {
+            openAiApiAdapter.getProperties().chat.defaultModel
+        } else {
+            openAiChatAnnotation.model
+        }
         val description = openAiChatAnnotation?.description
 
         val specification = MethodSpecification.from(method, args)

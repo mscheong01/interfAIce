@@ -16,6 +16,10 @@ package io.github.mscheong01.interfaice.openai
 import reactor.core.publisher.Mono
 
 class MockOpenAiApiAdapter : OpenAiApiAdapter {
+    override fun getProperties(): OpenAiProperties {
+        return OpenAiProperties(apiKey = "sk-****")
+    }
+
     override fun setProperties(properties: OpenAiProperties) {
         // do nothing
     }
