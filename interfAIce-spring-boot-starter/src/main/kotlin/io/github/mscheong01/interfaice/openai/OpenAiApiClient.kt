@@ -23,6 +23,10 @@ class OpenAiApiClient : OpenAiApiAdapter {
     private lateinit var properties: OpenAiProperties
     private lateinit var webClient: WebClient
 
+    override fun getProperties(): OpenAiProperties {
+        return properties
+    }
+
     override fun setProperties(properties: OpenAiProperties) {
         this.properties = properties
         this.webClient = WebClient.builder()

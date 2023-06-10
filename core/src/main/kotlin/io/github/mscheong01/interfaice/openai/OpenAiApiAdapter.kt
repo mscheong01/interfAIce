@@ -16,6 +16,7 @@ package io.github.mscheong01.interfaice.openai
 import org.reactivestreams.Publisher
 
 interface OpenAiApiAdapter {
+    fun getProperties(): OpenAiProperties
     fun setProperties(properties: OpenAiProperties)
     fun chat(request: ChatRequest): Publisher<ChatResponse>
 }

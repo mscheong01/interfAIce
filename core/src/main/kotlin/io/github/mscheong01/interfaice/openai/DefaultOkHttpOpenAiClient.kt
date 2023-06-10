@@ -25,6 +25,11 @@ import java.io.IOException
 class DefaultOkHttpOpenAiClient : OpenAiApiAdapter {
     private lateinit var properties: OpenAiProperties
     private val client = OkHttpClient()
+
+    override fun getProperties(): OpenAiProperties {
+        return properties
+    }
+
     override fun setProperties(properties: OpenAiProperties) {
         this.properties = properties
     }
