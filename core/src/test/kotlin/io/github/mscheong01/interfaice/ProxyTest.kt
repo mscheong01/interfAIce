@@ -10,6 +10,10 @@ import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.Duration
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 // Copyright 2023 Minsoo Cheong
 //
@@ -33,6 +37,21 @@ class ProxyTest {
         println(result)
         val result2 = proxy.multiply(16, 8)
         println(result2)
+    }
+
+    @Test
+    fun testTime() {
+        val timeProxy = OpenAiProxyFactory.of(System.getenv("OPENAI_API_KEY")).create(TimeTestInterface::class.java)
+        val dateTime = timeProxy.randomDateTime()
+        println(dateTime)
+        val date = timeProxy.randomDate()
+        println(date)
+        val time = timeProxy.randomTime()
+        println(time)
+        val duration = timeProxy.randomDuration()
+        println(duration)
+        val kotlinDuration = timeProxy.randomKDuration()
+        println(kotlinDuration)
     }
 
     @Test
@@ -135,5 +154,14 @@ class ProxyTest {
 
         @OpenAiChat
         fun randomWelcomeMessages(fromCompany: String, count: Int = 5): Flow<String>
+    }
+
+    interface TimeTestInterface {
+        fun randomDateTime(): LocalDateTime
+        fun randomDate(): LocalDate
+        fun randomTime(): LocalTime
+        fun randomDuration(): Duration
+
+        fun randomKDuration(): kotlin.time.Duration
     }
 }
