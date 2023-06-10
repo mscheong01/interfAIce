@@ -316,7 +316,7 @@ object TranscodingRules {
                 }
 
                 type.klazz.java.declaredFields.forEach { field ->
-                    val valueNode = objectNode.get(field.name)
+                    val valueNode = objectNode[field.name]
                     val fieldType = TypeSpecification(
                         klazz = field.type.kotlin,
                         javaType = field.genericType
@@ -341,9 +341,11 @@ object TranscodingRules {
                 val constructor = type.klazz.java.declaredConstructors.find { constructor ->
                     constructor.parameters.all { parameter -> objectNode.has(parameter.name) }
                 } ?: throw IllegalStateException(
-                    "No suitable constructor found for type ${type.klazz.java}. " +
-                        "Expected a constructor with no parameters or with parameters matching the fields of the json object. " +
-                        "If you want to use one with parameters, the compile option '-parameters' must be enabled."
+                    """
+                        No suitable constructor found for type ${type.klazz.java}.
+                        Expected a constructor with no parameters or with parameters matching the fields of the json object.
+                        If you want to use one with parameters, the compile option '-parameters' must be enabled.
+                    """.trimIndent()
                 )
 
                 val parameters = constructor.parameters
