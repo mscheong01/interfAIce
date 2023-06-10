@@ -1,13 +1,15 @@
 package io.github.mscheong01.interfaice
 
+import com.fasterxml.jackson.databind.MapperFeature
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.jsonMapper
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
 object TranscodingRules {
-
+    @Suppress("UNCHECKED_CAST")
     fun <T : Any> matchBuiltInRule(type: TypeSpecification<T>): Rule<T> {
         return when {
             type.klazz == Byte::class -> BYTE
@@ -33,9 +35,7 @@ object TranscodingRules {
                 MapRule(keyType, valueType)
             }
             type.klazz.isSubclassOf(Enum::class) -> EnumRule(type as TypeSpecification<out Enum<*>>)
-            else -> {
-                throw IllegalArgumentException("unsupported type: ${type.klazz.qualifiedName}")
-            }
+            else -> ObjectRule(type)
         } as Rule<T>
     }
 
@@ -127,12 +127,14 @@ object TranscodingRules {
     ) {
         override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
             val node = ObjectRule.mapper.readTree(value)
-            if (!node.isArray) {
-                throw IllegalArgumentException("expected json array. actual: $value")
-            }
+            require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it.asText(), entryType)
+                if (it.isValueNode) {
+                    transcoder.decode(it.asText(), entryType)
+                } else {
+                    transcoder.decode(it.toString(), entryType)
+                }
             }
         }
     }
@@ -144,12 +146,14 @@ object TranscodingRules {
     ) {
         override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
             val node = ObjectRule.mapper.readTree(value)
-            if (!node.isArray) {
-                throw IllegalArgumentException("expected json array. actual: $value")
-            }
+            require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it.asText(), entryType)
+                if (it.isValueNode) {
+                    transcoder.decode(it.asText(), entryType)
+                } else {
+                    transcoder.decode(it.toString(), entryType)
+                }
             }.toSet()
         }
     }
@@ -187,10 +191,10 @@ object TranscodingRules {
                 value -> {
                     %s
                 }
-            """.format(
+            """.trimIndent().format(
                 transcoder.match(keyType).encodeDescription(transcoder),
                 transcoder.match(valueType).encodeDescription(transcoder)
-            ).trimIndent()
+            )
         }
 
         override fun encode(transcoder: TextObjectTranscoder, value: Map<K, V>): String {
@@ -199,15 +203,18 @@ object TranscodingRules {
 
         override fun decode(transcoder: TextObjectTranscoder, value: String): Map<K, V> {
             val node = ObjectRule.mapper.readTree(value)
-            if (!node.isObject) {
-                throw IllegalArgumentException("expected json object. actual: $value")
-            }
+            require(node.isObject) { "expected json object. actual: $value" }
             val objectNode = node as ObjectNode
-            return objectNode.fields().asSequence().map { (key, value) ->
-                transcoder.decode(key, keyType) to transcoder.decode(value.asText(), valueType)
+            return objectNode.fields().asSequence().map { (k, v) ->
+                transcoder.decode(k, keyType) to if (v.isValueNode) {
+                    transcoder.decode(v.asText(), valueType)
+                } else {
+                    transcoder.decode(v.toString(), valueType)
+                }
             }.toMap()
         }
     }
+
     open class CollectionRule<T : Any>(
         open val entryType: TypeSpecification<T>
     ) : Rule<Collection<T>> {
@@ -215,9 +222,9 @@ object TranscodingRules {
             return """
                 Json array with the following entry format:
                 %s
-            """.format(
+            """.trimIndent().format(
                 transcoder.match(entryType).encodeDescription(transcoder)
-            ).trimIndent()
+            )
         }
 
         override fun encode(transcoder: TextObjectTranscoder, value: Collection<T>): String {
@@ -226,12 +233,14 @@ object TranscodingRules {
 
         override fun decode(transcoder: TextObjectTranscoder, value: String): Collection<T> {
             val node = ObjectRule.mapper.readTree(value)
-            if (!node.isArray) {
-                throw IllegalArgumentException("expected json array. actual: $value")
-            }
+            require(node.isArray) { "expected json array. actual: $value" }
             val arrayNode = node as ArrayNode
             return arrayNode.map {
-                transcoder.decode(it.asText(), entryType)
+                if (it.isValueNode) {
+                    transcoder.decode(it.asText(), entryType)
+                } else {
+                    transcoder.decode(it.toString(), entryType)
+                }
             }
         }
     }
@@ -245,9 +254,9 @@ object TranscodingRules {
                 return """
                     one of the following values:
                     %s
-                """.format(
+                """.trimIndent().format(
                     enumConstants.joinToString(", ") { it.name }
-                ).trimIndent()
+                )
             } else {
                 throw IllegalArgumentException("enum type $enumType has no constants")
             }
@@ -263,20 +272,133 @@ object TranscodingRules {
         }
     }
 
-    class ObjectRule<T : Any> : Rule<T> {
+    class ObjectRule<T : Any>(
+        val type: TypeSpecification<T>
+    ) : Rule<T> {
         override fun encodeDescription(transcoder: TextObjectTranscoder): String {
-            TODO("Not yet implemented")
+            return """
+                Json object with the following fields:
+                %s
+            """.trimIndent().format(
+                type.klazz.java.declaredFields.joinToString("\n") { field ->
+                    val typeSpecification = TypeSpecification(
+                        klazz = field.type.kotlin,
+                        javaType = field.genericType
+                    )
+
+                    """
+                        %s -> {
+                            %s
+                        }
+                    """.trimIndent().format(
+                        field.name,
+                        transcoder.match(typeSpecification).encodeDescription(transcoder)
+                    )
+                }
+            )
         }
 
         override fun encode(transcoder: TextObjectTranscoder, value: T): String {
-            return mapper.writeValueAsString(value)
+            return pureMapper.writeValueAsString(value)
         }
 
         override fun decode(transcoder: TextObjectTranscoder, value: String): T {
-            TODO("Not yet implemented")
+            val node = mapper.readTree(value)
+            require(node.isObject) { "expected json object. actual: $value" }
+            val objectNode = node as ObjectNode
+
+            val constructor = type.klazz.java.declaredConstructors.find { constructor ->
+                constructor.parameters.all { parameter -> objectNode.has(parameter.name) }
+            } ?: throw IllegalStateException("no constructor found for type ${type.klazz.java}")
+
+            val parameters = constructor.parameters
+            val arguments = parameters.map { parameter ->
+                objectNode[parameter.name]?.let { valueNode ->
+                    objectNode.remove(parameter.name)
+
+                    val fieldType = TypeSpecification(
+                        klazz = parameter.type.kotlin,
+                        javaType = parameter.parameterizedType
+                    )
+
+                    if (valueNode.isValueNode) {
+                        transcoder.decode(valueNode.asText(), fieldType)
+                    } else {
+                        transcoder.decode(valueNode.toString(), fieldType)
+                    }
+                }
+            }.toTypedArray()
+
+            constructor.isAccessible = true
+            val obj: T
+            try {
+                @Suppress("UNCHECKED_CAST")
+                obj = constructor.newInstance(*arguments) as T
+            } finally {
+                constructor.isAccessible = false
+            }
+
+            if (node.isEmpty) return obj
+
+            val setters = type.klazz.java.methods.filter { it.name.startsWith("set") && it.parameterCount == 1 }
+            setters.forEach { setter ->
+                val fieldName = setter.name.substring(3).replaceFirstChar { it.lowercase() }
+                objectNode[fieldName]?.let { valueNode ->
+                    objectNode.remove(fieldName)
+
+                    val fieldType = TypeSpecification(
+                        klazz = setter.parameters[0].type.kotlin,
+                        javaType = setter.parameters[0].parameterizedType
+                    )
+                    setter.invoke(
+                        obj,
+                        if (valueNode.isValueNode) {
+                            transcoder.decode(valueNode.asText(), fieldType)
+                        } else {
+                            transcoder.decode(valueNode.toString(), fieldType)
+                        }
+                    )
+                }
+            }
+
+            if (node.isEmpty) return obj
+
+            type.klazz.java.declaredFields.forEach { field ->
+                val fieldName = field.name
+                objectNode[fieldName]?.let { valueNode ->
+                    objectNode.remove(fieldName)
+
+                    val fieldType = TypeSpecification(
+                        klazz = field.type.kotlin,
+                        javaType = field.genericType
+                    )
+                    field.isAccessible = true
+                    try {
+                        field.set(
+                            obj,
+                            if (valueNode.isValueNode) {
+                                transcoder.decode(valueNode.asText(), fieldType)
+                            } else {
+                                transcoder.decode(valueNode.toString(), fieldType)
+                            }
+                        )
+                    } finally {
+                        field.isAccessible = false
+                    }
+                }
+            }
+
+            return obj
         }
+
         companion object {
             val mapper = jacksonObjectMapper()
+
+            /**
+             * Use pureMapper to prevent annotations like [com.fasterxml.jackson.databind.annotation.JsonNaming] from being used
+             * and provide consistent serialized input for LLM.
+             */
+            val pureMapper = jsonMapper { disable(MapperFeature.USE_ANNOTATIONS) }
         }
     }
 

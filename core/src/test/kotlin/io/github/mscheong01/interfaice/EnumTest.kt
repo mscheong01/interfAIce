@@ -15,7 +15,7 @@ package io.github.mscheong01.interfaice
 
 import io.github.mscheong01.interfaice.openai.OpenAiChat
 import io.github.mscheong01.interfaice.openai.OpenAiProxyFactory
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 class EnumTest {
@@ -25,6 +25,7 @@ class EnumTest {
         HIGH,
         NOT_STUDENT
     }
+
     interface TestInterface {
         @OpenAiChat
         fun appropriateSchoolForAge(age: Int): School
@@ -35,13 +36,14 @@ class EnumTest {
         val proxy = OpenAiProxyFactory
             .of(System.getenv("OPENAI_API_KEY"))
             .create<TestInterface>()
+
         val result = proxy.appropriateSchoolForAge(8)
-        Assertions.assertThat(result).isEqualTo(School.ELEMENTARY)
+        assertThat(result).isEqualTo(School.ELEMENTARY)
         val result2 = proxy.appropriateSchoolForAge(14)
-        Assertions.assertThat(result2).isEqualTo(School.MIDDLE)
+        assertThat(result2).isEqualTo(School.MIDDLE)
         val result3 = proxy.appropriateSchoolForAge(17)
-        Assertions.assertThat(result3).isEqualTo(School.HIGH)
+        assertThat(result3).isEqualTo(School.HIGH)
         val result4 = proxy.appropriateSchoolForAge(25)
-        Assertions.assertThat(result4).isEqualTo(School.NOT_STUDENT)
+        assertThat(result4).isEqualTo(School.NOT_STUDENT)
     }
 }
