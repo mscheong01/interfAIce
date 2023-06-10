@@ -19,8 +19,6 @@ data class OpenAiProperties(
     val chat: ChatProperties = ChatProperties()
 ) {
     data class ChatProperties(
-        val defaultModel: String = "gpt-3.5-turbo",
-        val defaultTemperature: Double = 0.0,
-        val defaultTopP: Double = 1.0
+        val defaultModel: String = "gpt-3.5-turbo"
     )
 }
