@@ -393,6 +393,11 @@ object TranscodingRules {
 
         companion object {
             val mapper = jacksonObjectMapper()
+
+            /**
+             * Use pureMapper to prevent annotations like [com.fasterxml.jackson.databind.annotation.JsonNaming] from being used
+             * and provide consistent serialized input for LLM.
+             */
             val pureMapper = jsonMapper { disable(MapperFeature.USE_ANNOTATIONS) }
         }
     }
