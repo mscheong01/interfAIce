@@ -1,8 +1,10 @@
 package io.github.mscheong01.interfaice
 
+import com.fasterxml.jackson.databind.MapperFeature
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.jsonMapper
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
@@ -297,7 +299,7 @@ object TranscodingRules {
         }
 
         override fun encode(transcoder: TextObjectTranscoder, value: T): String {
-            return mapper.writeValueAsString(value)
+            return pureMapper.writeValueAsString(value)
         }
 
         override fun decode(transcoder: TextObjectTranscoder, value: String): T {
@@ -391,6 +393,7 @@ object TranscodingRules {
 
         companion object {
             val mapper = jacksonObjectMapper()
+            val pureMapper = jsonMapper { disable(MapperFeature.USE_ANNOTATIONS) }
         }
     }
 
