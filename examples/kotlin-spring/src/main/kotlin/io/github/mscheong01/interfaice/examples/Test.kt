@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @OpenAiInterface
 interface TestInterface {
     fun getCountryNamesIn(continentName: String): Flux<String>
+    suspend fun getCityNamesIn(countryName: String): List<String>
 }
 
 @RestController
@@ -30,7 +30,12 @@ class TestController(
     private val testInterface: TestInterface
 ) {
     @GetMapping("/test/getCountryNamesIn")
-    fun getCountryNamesIn(@RequestParam("continent") continentName: String): Mono<List<String>> {
-        return testInterface.getCountryNamesIn(continentName).collectList()
+    fun getCountryNamesIn(@RequestParam("continent") continentName: String): Flux<String> {
+        return testInterface.getCountryNamesIn(continentName).map { "$it\n" }
+    }
+
+    @GetMapping("/test/getCityNamesIn")
+    suspend fun getCityNamesIn(countryName: String): List<String> {
+        return testInterface.getCityNamesIn(countryName)
     }
 }
