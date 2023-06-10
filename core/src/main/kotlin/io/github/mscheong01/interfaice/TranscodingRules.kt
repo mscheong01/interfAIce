@@ -305,21 +305,72 @@ object TranscodingRules {
             require(node.isObject) { "expected json object. actual: $value" }
             val objectNode = node as ObjectNode
 
-            val fieldsMap = objectNode.fields().asSequence().map { (key, valueNode) ->
-                val field = type.klazz.java.getDeclaredField(key)
-                val fieldType = TypeSpecification(
-                    klazz = field.type.kotlin,
-                    javaType = field.genericType
+            return type.klazz.java.declaredConstructors.find { it.parameterCount == 0 }?.let { noArgsConstructor ->
+                noArgsConstructor.isAccessible = true
+                val obj: T
+                try {
+                    @Suppress("UNCHECKED_CAST")
+                    obj = noArgsConstructor.newInstance() as T
+                } finally {
+                    noArgsConstructor.isAccessible = false
+                }
+
+                type.klazz.java.declaredFields.forEach { field ->
+                    val valueNode = objectNode.get(field.name)
+                    val fieldType = TypeSpecification(
+                        klazz = field.type.kotlin,
+                        javaType = field.genericType
+                    )
+
+                    field.isAccessible = true
+                    try {
+                        field.set(
+                            obj,
+                            if (valueNode.isValueNode) {
+                                transcoder.decode(valueNode.asText(), fieldType)
+                            } else {
+                                transcoder.decode(valueNode.toString(), fieldType)
+                            }
+                        )
+                    } finally {
+                        field.isAccessible = false
+                    }
+                }
+                obj
+            } ?: run {
+                val constructor = type.klazz.java.declaredConstructors.find { constructor ->
+                    constructor.parameters.all { parameter -> objectNode.has(parameter.name) }
+                } ?: throw IllegalStateException(
+                    "No suitable constructor found for type ${type.klazz.java}. " +
+                        "Expected a constructor with no parameters or with parameters matching the fields of the json object. " +
+                        "If you want to use one with parameters, the compile option '-parameters' must be enabled."
                 )
 
-                key to if (valueNode.isValueNode) {
-                    transcoder.decode(valueNode.asText(), fieldType)
-                } else {
-                    transcoder.decode(valueNode.toString(), fieldType)
-                }
-            }.toMap()
+                val parameters = constructor.parameters
+                val arguments = parameters.map { parameter ->
+                    val valueNode = objectNode[parameter.name]
+                    val fieldType = TypeSpecification(
+                        klazz = parameter.type.kotlin,
+                        javaType = parameter.parameterizedType
+                    )
 
-            return mapper.convertValue(fieldsMap, type.klazz.java)
+                    if (valueNode.isValueNode) {
+                        transcoder.decode(valueNode.asText(), fieldType)
+                    } else {
+                        transcoder.decode(valueNode.toString(), fieldType)
+                    }
+                }.toTypedArray()
+
+                constructor.isAccessible = true
+                val obj: T
+                try {
+                    @Suppress("UNCHECKED_CAST")
+                    obj = constructor.newInstance(*arguments) as T
+                } finally {
+                    constructor.isAccessible = false
+                }
+                obj
+            }
         }
 
         companion object {
