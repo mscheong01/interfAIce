@@ -13,6 +13,9 @@
 // limitations under the License.
 package io.github.mscheong01.interfaice
 
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.annotation.JsonNaming
 import io.github.mscheong01.interfaice.openai.OpenAiChat
 import io.github.mscheong01.interfaice.openai.OpenAiProxyFactory
 import org.assertj.core.api.Assertions.assertThat
@@ -39,6 +42,13 @@ class ObjectTest {
         val city: String
     )
 
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
+    data class SimplePersonInfo(
+        val firstName: String,
+        @JsonProperty("family_name")
+        val lastName: String
+    )
+
     interface TestInterface {
         @OpenAiChat
         fun getDummyPersonInfo(): PersonInfo
@@ -48,6 +58,9 @@ class ObjectTest {
 
         @OpenAiChat
         fun echoThisPersonInfo(personInfo: PersonInfo): PersonInfo
+
+        @OpenAiChat
+        fun getDummySimplePersonInfo(): SimplePersonInfo
     }
 
     @Test
@@ -104,5 +117,16 @@ class ObjectTest {
         )
         val result = proxy.echoThisPersonInfo(personInfo)
         assertThat(result).isEqualTo(personInfo)
+    }
+
+    @Test
+    fun testObjectWithJacksonAnnotationReturnType() {
+        val proxy = OpenAiProxyFactory
+            .of(System.getenv("OPENAI_API_KEY"))
+            .create<TestInterface>()
+
+        val result = proxy.getDummySimplePersonInfo()
+        assertThat(result.firstName).isNotBlank()
+        assertThat(result.lastName).isNotBlank()
     }
 }
