@@ -26,10 +26,11 @@ If there are any issues, you can try to fix them automatically by running:
 
 ### Tests
 
-When changing the generated code output, include a test for it in the same pull request (PR). Add new `.proto` files under `src/test/proto`, and they will be automatically generated and accessible from the tests. Ensure that all tests pass before submitting your PR:
+When contributing code to this repository, include a test for it in the same pull request (PR). Ensure that the specific test passes before submitting your PR:
 ```bash
 ./gradlew test
 ```
+Also, make sure to provide the `OPENAI_API_KEY` environment variable to provide the tests with access to the OpenAI api
 
 ### Pull Requests
 
