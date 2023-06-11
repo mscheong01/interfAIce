@@ -5,6 +5,12 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.jsonMapper
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
@@ -21,6 +27,12 @@ object TranscodingRules {
             type.klazz == Char::class -> CHAR
             type.klazz == Boolean::class -> BOOLEAN
             type.klazz == String::class -> STRING
+            type.klazz == LocalDateTime::class -> LOCAL_DATE_TIME
+            type.klazz == LocalDate::class -> LOCAL_DATE
+            type.klazz == LocalTime::class -> LOCAL_TIME
+            type.klazz == Instant::class -> INSTANT
+            type.klazz == Duration::class -> DURATION
+            type.klazz == kotlin.time.Duration::class -> KOTLIN_DURATION
             type.klazz.isSubclassOf(Collection::class) -> {
                 val entryType = type.typeArguments.first()
                 when {
@@ -120,6 +132,60 @@ object TranscodingRules {
         decoder = { it }
     )
 
+    val LOCAL_DATE_TIME = KotlinDefaultRule(
+        type = LocalDateTime::class,
+        encodeDescription = """
+            a datetime literal with format: yyyy-MM-dd HH:mm:ss
+        """.trimIndent(),
+        encoder = { it.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) },
+        decoder = { LocalDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) }
+    )
+
+    val LOCAL_DATE = KotlinDefaultRule(
+        type = LocalDate::class,
+        encodeDescription = """
+            a date literal with format: yyyy-MM-dd
+        """.trimIndent(),
+        encoder = { it.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) },
+        decoder = { LocalDate.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd")) }
+    )
+
+    val LOCAL_TIME = KotlinDefaultRule(
+        type = LocalTime::class,
+        encodeDescription = """
+            a time literal with format: HH:mm:ss
+        """.trimIndent(),
+        encoder = { it.format(DateTimeFormatter.ofPattern("HH:mm:ss")) },
+        decoder = { LocalTime.parse(it, DateTimeFormatter.ofPattern("HH:mm:ss")) }
+    )
+
+    val INSTANT = KotlinDefaultRule(
+        type = Instant::class,
+        encodeDescription = """
+            a datetime literal with format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+        """.trimIndent(),
+        encoder = { it.toString() },
+        decoder = { Instant.parse(it) }
+    )
+
+    val DURATION = KotlinDefaultRule(
+        type = Duration::class,
+        encodeDescription = """
+            a duration literal with ISO-8601 duration format PnDTnHnMn.nS
+        """.trimIndent(),
+        encoder = { it.toString() },
+        decoder = { Duration.parse(it) }
+    )
+
+    val KOTLIN_DURATION = KotlinDefaultRule(
+        type = kotlin.time.Duration::class,
+        encodeDescription = """
+            a duration literal with ISO-8601 duration format PnDTnHnMn.nS
+        """.trimIndent(),
+        encoder = { it.toIsoString() },
+        decoder = { kotlin.time.Duration.parse(it) }
+    )
+
     class ListRule<T : Any>(
         override val entryType: TypeSpecification<T>
     ) : CollectionRule<T>(
@@ -215,7 +281,7 @@ object TranscodingRules {
         }
     }
 
-    open class CollectionRule<T : Any>(
+    sealed class CollectionRule<T : Any>(
         open val entryType: TypeSpecification<T>
     ) : Rule<Collection<T>> {
         override fun encodeDescription(transcoder: TextObjectTranscoder): String {
