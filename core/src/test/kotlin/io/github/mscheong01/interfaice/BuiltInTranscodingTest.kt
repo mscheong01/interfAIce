@@ -16,6 +16,7 @@ package io.github.mscheong01.interfaice
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -43,6 +44,12 @@ class BuiltInTranscodingTest {
         Assertions.assertThat(encodedTime).isEqualTo("03:56:00")
         val decodedTime = transcoder.decode(encodedTime, TypeSpecification.from(time))
         Assertions.assertThat(decodedTime).isEqualTo(time)
+
+        val instant = Instant.parse("2021-01-01T00:00:00Z")
+        val encodedInstant = transcoder.encode(instant)
+        Assertions.assertThat(encodedInstant).isEqualTo("2021-01-01T00:00:00Z")
+        val decodedInstant = transcoder.decode(encodedInstant, TypeSpecification.from(instant))
+        Assertions.assertThat(decodedInstant).isEqualTo(instant)
 
         val duration = Duration.ofMinutes(3)
         val encodedDuration = transcoder.encode(duration)

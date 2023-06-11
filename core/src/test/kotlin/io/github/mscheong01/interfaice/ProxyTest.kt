@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -48,6 +49,8 @@ class ProxyTest {
         println(date)
         val time = timeProxy.randomTime()
         println(time)
+        val instant = timeProxy.randomInstant()
+        println(instant)
         val duration = timeProxy.randomDuration()
         println(duration)
         val kotlinDuration = timeProxy.randomKDuration()
@@ -160,8 +163,8 @@ class ProxyTest {
         fun randomDateTime(): LocalDateTime
         fun randomDate(): LocalDate
         fun randomTime(): LocalTime
+        fun randomInstant(): Instant
         fun randomDuration(): Duration
-
         fun randomKDuration(): kotlin.time.Duration
     }
 }

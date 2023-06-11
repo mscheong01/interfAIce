@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -29,6 +30,7 @@ object TranscodingRules {
             type.klazz == LocalDateTime::class -> LOCAL_DATE_TIME
             type.klazz == LocalDate::class -> LOCAL_DATE
             type.klazz == LocalTime::class -> LOCAL_TIME
+            type.klazz == Instant::class -> INSTANT
             type.klazz == Duration::class -> DURATION
             type.klazz == kotlin.time.Duration::class -> KOTLIN_DURATION
             type.klazz.isSubclassOf(Collection::class) -> {
@@ -155,6 +157,15 @@ object TranscodingRules {
         """.trimIndent(),
         encoder = { it.format(DateTimeFormatter.ofPattern("HH:mm:ss")) },
         decoder = { LocalTime.parse(it, DateTimeFormatter.ofPattern("HH:mm:ss")) }
+    )
+
+    val INSTANT = KotlinDefaultRule(
+        type = Instant::class,
+        encodeDescription = """
+            a datetime literal with format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+        """.trimIndent(),
+        encoder = { it.toString() },
+        decoder = { Instant.parse(it) }
     )
 
     val DURATION = KotlinDefaultRule(
