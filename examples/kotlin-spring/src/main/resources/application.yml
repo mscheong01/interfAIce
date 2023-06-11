@@ -1,0 +1,6 @@
+spring:
+  interfaice:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        default-model: gpt-3.5-turbo
