@@ -21,7 +21,7 @@ In your project's `build.gradle.kts` file, add the following:
 - kotlin
     ```kotlin
     dependencies {
-        implementation("io.github.mscheong01:interfAIce:1.0.0")
+        implementation("io.github.mscheong01:interfAIce-core:1.0.0")
     }
     
     // This option is currently required for reflection to work
@@ -37,7 +37,7 @@ In your project's `build.gradle.kts` file, add the following:
 - java
     ```kotlin
     dependencies {
-        implementation("io.github.mscheong01:interfAIce:1.0.0")
+        implementation("io.github.mscheong01:interfAIce-core:1.0.0")
     }
     
     // This option is currently required for reflection to work
