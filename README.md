@@ -27,7 +27,6 @@ In your project's `build.gradle.kts` file, add the following:
     tasks.withType<KotlinCompile> {
         this.kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict")
-            jvmTarget = JavaVersion.VERSION_17.toString()
             javaParameters = true
         }
     }
