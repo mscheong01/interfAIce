@@ -1,7 +1,5 @@
 # interfAIce
 
-----------------
-
 ### AI itself as your implementation
 
 <p float="left">
