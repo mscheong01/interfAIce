@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 dependencies {
     api(project(":core"))
@@ -25,5 +27,17 @@ publishing {
                 description.set("interfAIce spring boot starter")
             }
         }
+    }
+}
+
+tasks.withType<BootJar> {
+    enabled = false
+}
+
+tasks.withType<KotlinCompile> {
+    this.kotlinOptions {
+        freeCompilerArgs = listOf("-Xjsr305=strict")
+        jvmTarget = JavaVersion.VERSION_17.toString()
+        javaParameters = true
     }
 }

@@ -1,0 +1,36 @@
+name: Publish Snapshot
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'interfAIce-spring-boot-starter/src/main/kotlin/**'
+      - 'core/src/main/kotlin/**'
+      - 'build.gradle.kts'
+      - 'interfAIce-spring-boot-starter/build.gradle.kts'
+      - 'core/build.gradle.kts'
+  workflow_dispatch:
+
+env:
+  MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+  MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup AdoptOpenJDK
+        uses: joschi/setup-jdk@v2
+        with:
+          java-version: '17'
+      - name: Build with Gradle
+        working-directory: ./
+        run: ./gradlew build publish -x test
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v2
+        if: always() # always run even if the previous step fails
+        with:
+          report_paths: '**/build/test-results/test/TEST-*.xml'
