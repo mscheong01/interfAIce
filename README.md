@@ -19,21 +19,76 @@
 
 In your project's `build.gradle.kts` file, add the following:
 - kotlin
-```kotlin
-dependencies {
-    implementation("io.github.mscheong01:interfAIce:1.0.0")
-}
-
-// this option is currently required for reflection to work
-// later releases will remove this requirement for Kotlin projects
-tasks.withType<KotlinCompile> {
-    this.kotlinOptions {
-        freeCompilerArgs = listOf("-Xjsr305=strict")
-        jvmTarget = JavaVersion.VERSION_17.toString()
-        javaParameters = true
+    ```kotlin
+    dependencies {
+        implementation("io.github.mscheong01:interfAIce:1.0.0")
     }
-}
-```
+    
+    // This option is currently required for reflection to work
+    // Later releases will remove this requirement for Kotlin projects
+    tasks.withType<KotlinCompile> {
+        this.kotlinOptions {
+            freeCompilerArgs = listOf("-Xjsr305=strict")
+            jvmTarget = JavaVersion.VERSION_17.toString()
+            javaParameters = true
+        }
+    }
+    ```
+- java
+    ```kotlin
+    dependencies {
+        implementation("io.github.mscheong01:interfAIce:1.0.0")
+    }
+    
+    // This option is currently required for reflection to work
+    // If all your classes have a no-arg constructor, you can remove this option
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.add("-parameters")
+    }
+    ```
+- spring boot
+  1. add the spring boot starter dependency along with the appropriate java compile -parameter option configuration above
+    ```kotlin
+    dependencies {
+        implementation("io.github.mscheong01:interfAIce-spring-boot-starter:1.0.0")
+    }
+    ```
+  2. add the `@EnableInterfaiceProxies` annotation to your spring boot application class or any of its configuration classes
+    ```kotlin
+    @EnableInterfaiceProxies(
+        basePackages = ["io.github.mscheong01.interfaice.examples"]
+    )
+    @SpringBootApplication
+    open class ExampleApplication
+    ```
+  3. specify your OpenAi api key in the `application.yml` file
+  ```yaml
+  spring:
+  interfaice:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        default-model: gpt-3.5-turbo # optional, defaults to gpt-3.5-turbo
+  ```
+  4. add the `@OpenAiInterface` annotation to your interface
+    ```kotlin
+    @OpenAiInterface
+    interface ExampleInterface {
+        fun greet(name: String): String
+    }
+    ```
+  That is it! You can now use your interface as if it was implemented by a real class.
+  ```kotlin
+    @RestController
+    class ExampleController(
+        private val exampleInterface: ExampleInterface
+    ) {
+        @GetMapping("/greet")
+        fun greet(@RequestParam name: String): String {
+            return exampleInterface.greet(name)
+        }
+    }
+    ```
 
 ## Snapshot Versions
 interfAIce provides snapshot versions that are automatically released when changes are pushed to the main branch.
