@@ -7,6 +7,7 @@
   <img src="interfaice_demo.gif" height="400" />
 </p>
 
+check out my [blog post](https://medium.com/@mscheong01/harness-the-power-of-gpt-just-by-defining-an-interface-8ccfa0b94a8c) that introduces interfAIce
 ## Features
 
 - Automatic AI powered proxy generation for your interfaces
