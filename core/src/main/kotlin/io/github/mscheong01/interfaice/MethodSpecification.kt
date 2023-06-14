@@ -14,9 +14,6 @@
 package io.github.mscheong01.interfaice
 
 import io.github.mscheong01.interfaice.util.isSuspendingFunction
-import kotlinx.coroutines.flow.Flow
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
@@ -149,24 +146,6 @@ open class TypeSpecification<T : Any>(
                 javaType = obj::class.java
             )
         }
-
-        fun from(type: Type): TypeSpecification<*> {
-            val klazz = if (type is ParameterizedType) {
-                (type.rawType as Class<*>).kotlin
-            } else {
-                (type as Class<*>).kotlin
-            }
-            return TypeSpecification(
-                klazz = klazz,
-                javaType = type
-            )
-        }
-
-        val REACTIVE_WRAPPER_TYPES = listOf(
-            Mono::class,
-            Flux::class,
-            Flow::class
-        )
     }
 }
 
