@@ -23,6 +23,11 @@ class TextObjectTranscoder(
         val rule = match(TypeSpecification.from(obj))
         return rule.encode(this, obj)
     }
+    fun <T : Any> encode(obj: T?, type: TypeSpecification<T>): String {
+        if (obj == null) return "NULL"
+        val rule = match(type)
+        return rule.encode(this, obj)
+    }
 
     fun <T : Any> decode(str: String, type: TypeSpecification<T>): T {
         val rule = match(type)

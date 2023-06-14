@@ -110,6 +110,28 @@ open class TypeSpecification<T : Any>(
             )
         }
 
+    val isArray: Boolean
+        get() {
+            return Array<Any>::class.java.isAssignableFrom(this.klazz.java)
+        }
+
+    val arrayTypeArgument: TypeSpecification<*>
+        get() {
+            if (!isArray) {
+                throw IllegalStateException("Type: ${this.javaType.typeName} is not an array")
+            }
+            val entryType = (javaType as Class<*>).componentType
+            val klazz = if (entryType is ParameterizedType) {
+                (entryType.rawType as Class<*>).kotlin
+            } else {
+                (entryType as Class<*>).kotlin
+            }
+            return TypeSpecification(
+                klazz = klazz,
+                javaType = entryType
+            )
+        }
+
     val isReactiveWrapper: Boolean
         get() {
             val qualifiedName = klazz.qualifiedName
@@ -125,6 +147,18 @@ open class TypeSpecification<T : Any>(
             return TypeSpecification(
                 klazz = obj::class,
                 javaType = obj::class.java
+            )
+        }
+
+        fun from(type: Type): TypeSpecification<*> {
+            val klazz = if (type is ParameterizedType) {
+                (type.rawType as Class<*>).kotlin
+            } else {
+                (type as Class<*>).kotlin
+            }
+            return TypeSpecification(
+                klazz = klazz,
+                javaType = type
             )
         }
 

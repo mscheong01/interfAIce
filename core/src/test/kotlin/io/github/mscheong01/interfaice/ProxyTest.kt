@@ -74,6 +74,12 @@ class ProxyTest {
     }
 
     @Test
+    fun arrayTest() {
+        val result = proxy.arrayOfMountainNamesInCountry("South Korea")
+        println(result.contentToString())
+    }
+
+    @Test
     fun collectionTest() {
         val result = proxy.listOfMountainNamesInCountry("Nepal")
         println(result)
@@ -130,6 +136,9 @@ class ProxyTest {
 
         @OpenAiChat
         fun greetingMessage(name: String?): String
+
+        @OpenAiChat
+        fun arrayOfMountainNamesInCountry(countryName: String): Array<String>
 
         @OpenAiChat
         fun listOfMountainNamesInCountry(countryName: String): List<String>
