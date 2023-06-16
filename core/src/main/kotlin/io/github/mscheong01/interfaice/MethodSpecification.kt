@@ -14,9 +14,6 @@
 package io.github.mscheong01.interfaice
 
 import io.github.mscheong01.interfaice.util.isSuspendingFunction
-import kotlinx.coroutines.flow.Flow
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
@@ -110,6 +107,28 @@ open class TypeSpecification<T : Any>(
             )
         }
 
+    val isArray: Boolean
+        get() {
+            return Array<Any>::class.java.isAssignableFrom(this.klazz.java)
+        }
+
+    val arrayTypeArgument: TypeSpecification<*>
+        get() {
+            if (!isArray) {
+                throw IllegalStateException("Type: ${this.javaType.typeName} is not an array")
+            }
+            val entryType = (javaType as Class<*>).componentType
+            val klazz = if (entryType is ParameterizedType) {
+                (entryType.rawType as Class<*>).kotlin
+            } else {
+                (entryType as Class<*>).kotlin
+            }
+            return TypeSpecification(
+                klazz = klazz,
+                javaType = entryType
+            )
+        }
+
     val isReactiveWrapper: Boolean
         get() {
             val qualifiedName = klazz.qualifiedName
@@ -127,12 +146,6 @@ open class TypeSpecification<T : Any>(
                 javaType = obj::class.java
             )
         }
-
-        val REACTIVE_WRAPPER_TYPES = listOf(
-            Mono::class,
-            Flux::class,
-            Flow::class
-        )
     }
 }
 

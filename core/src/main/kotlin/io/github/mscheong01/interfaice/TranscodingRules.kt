@@ -33,6 +33,10 @@ object TranscodingRules {
             type.klazz == Instant::class -> INSTANT
             type.klazz == Duration::class -> DURATION
             type.klazz == kotlin.time.Duration::class -> KOTLIN_DURATION
+            type.isArray -> {
+                val entryType = type.arrayTypeArgument
+                ArrayRule(entryType)
+            }
             type.klazz.isSubclassOf(Collection::class) -> {
                 val entryType = type.typeArguments.first()
                 when {
@@ -41,11 +45,13 @@ object TranscodingRules {
                     else -> throw IllegalArgumentException("unsupported type: $type")
                 }
             }
+
             type.klazz.isSubclassOf(Map::class) -> {
                 val keyType = type.typeArguments[0]
                 val valueType = type.typeArguments[1]
                 MapRule(keyType, valueType)
             }
+
             type.klazz.isSubclassOf(Enum::class) -> EnumRule(type as TypeSpecification<out Enum<*>>)
             else -> ObjectRule(type)
         } as Rule<T>
@@ -185,6 +191,39 @@ object TranscodingRules {
         encoder = { it.toIsoString() },
         decoder = { kotlin.time.Duration.parse(it) }
     )
+
+    class ArrayRule<T : Any>(
+        val entryType: TypeSpecification<T>
+    ) : Rule<Array<T>> {
+        override fun encodeDescription(transcoder: TextObjectTranscoder): String {
+            return """
+                    Json array with the following entry format:
+                    %s
+            """.trimIndent().format(
+                transcoder.match(entryType).encodeDescription(transcoder)
+            )
+        }
+
+        override fun encode(transcoder: TextObjectTranscoder, value: Array<T>): String {
+            return ObjectRule.mapper.writeValueAsString(value)
+        }
+
+        override fun decode(transcoder: TextObjectTranscoder, value: String): Array<T> {
+            val node = ObjectRule.mapper.readTree(value)
+            require(node.isArray) { "expected json array. actual: $value" }
+            val arrayNode = node as ArrayNode
+            val list = arrayNode.map {
+                if (it.isValueNode) {
+                    transcoder.decode(it.asText(), entryType)
+                } else {
+                    transcoder.decode(it.toString(), entryType)
+                }
+            }
+            val array = java.lang.reflect.Array.newInstance(entryType.klazz.java, list.size)
+            list.forEachIndexed { index, entry -> java.lang.reflect.Array.set(array, index, entry) }
+            return array as Array<T>
+        }
+    }
 
     class ListRule<T : Any>(
         override val entryType: TypeSpecification<T>
