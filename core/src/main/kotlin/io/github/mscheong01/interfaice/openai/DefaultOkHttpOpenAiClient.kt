@@ -51,16 +51,30 @@ class DefaultOkHttpOpenAiClient : OpenAiApiAdapter {
                 override fun onResponse(response: com.squareup.okhttp.Response) {
                     try {
                         if (!response.isSuccessful) {
-                            throw IOException("Error: ${response.code()} ${response.message()}")
+                            sink.error(IOException("Error: ${response.code()} ${response.message()}"))
                         } else {
                             sink.success(mapper.readValue(response.body().string()))
                         }
                     } catch (e: Exception) {
                         sink.error(e)
+                    } finally {
+                        try {
+                            if (response.body() != null) {
+                                response.body().close()
+                            }
+                        } catch (e: java.lang.Exception) {
+//                            logger.warn("Failed to quietly close Response", e)
+                        }
                     }
                 }
             })
         }
+    }
+
+    override fun close() {
+        client.dispatcher?.executorService?.shutdown()
+        client.connectionPool?.evictAll()
+        client.cache?.close()
     }
 
     companion object {

@@ -15,12 +15,13 @@ package io.github.mscheong01.interfaice.openai
 
 import io.github.mscheong01.interfaice.AiProxyFactory
 import io.github.mscheong01.interfaice.TranscodingRules
+import java.io.Closeable
 import java.lang.reflect.Proxy
 import java.util.ServiceLoader
 
 class OpenAiProxyFactory(
     private val openAiApiAdapter: OpenAiApiAdapter
-) : AiProxyFactory {
+) : AiProxyFactory, Closeable {
     val customTranscodingRules = mutableListOf<TranscodingRules.CustomRule<*>>()
 
     constructor(
@@ -37,6 +38,10 @@ class OpenAiProxyFactory(
 
     override fun addCustomTranscodingRules(customTranscodingRules: List<TranscodingRules.CustomRule<*>>) {
         this.customTranscodingRules.addAll(customTranscodingRules)
+    }
+
+    override fun close() {
+        openAiApiAdapter.close()
     }
 
     companion object {

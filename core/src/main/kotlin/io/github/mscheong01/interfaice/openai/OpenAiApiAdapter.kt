@@ -19,4 +19,6 @@ interface OpenAiApiAdapter {
     fun getProperties(): OpenAiProperties
     fun setProperties(properties: OpenAiProperties)
     fun chat(request: ChatRequest): Publisher<ChatResponse>
+
+    fun close() {}
 }
